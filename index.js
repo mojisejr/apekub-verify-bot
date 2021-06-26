@@ -23,7 +23,7 @@ const bscMainnetUrl = 'https://rpc.bitkubchain.io/'
 const privateKey = '778c8ab3ef982c03b7a972dc3f63293f20fb61991e7bcbf53ef3aea70763a50c';
 const provider = new ethers.providers.JsonRpcProvider(bscMainnetUrl)
 // const wallet = ethers.Wallet.fromMnemonic(mnemonic);
-const wallet = ethers.Wallet(privateKey);
+const wallet = new ethers.Wallet(privateKey);
 const account = wallet.connect(provider);
 
 const factory = new ethers.Contract(
