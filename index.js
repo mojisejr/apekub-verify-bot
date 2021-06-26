@@ -5,12 +5,12 @@ import chalk from 'chalk';
 const app = express();
 
 const data = {
-  WBNB: '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c', //wbnb 
-  to_PURCHASE: '0xe9e7cea3dedca5984780bafc599bd69add087d56',  // token to purchase = BUSD for test
-  factory: '0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73',  //PancakeSwap V2 factory
-  router: '0x10ED43C718714eb63d5aA57B78B54704E256024E', //PancakeSwap V2 router
-  recipient: '', //wallet address,
-  AMOUNT_OF_WBNB : '0.0002',
+  WBNB: '0x67eBD850304c70d983B2d1b93ea79c7CD6c3F6b5', //wbnb 
+  to_PURCHASE: '0x19dade57B0BBCE7D5E859ba02846820f5c0c2b09',  // VonderToken
+  factory: '0x447DdE468Fb3B185d395D8D43D82D6636d69d481',  //Vonder V2 factory
+  router: '0x54D851C39fE28b2E24e354B5E8c0f09EfC65B51A', //Vonder V2 router
+  recipient: '0x4D27D0c531Bd634D5A26f219596b84f171002FB1', //THE Deployer,
+  AMOUNT_OF_WBNB : '0.2',
   Slippage : '3', //in Percentage
   gasPrice : '5', //in gwei
   gasLimit : '345684' //at least 21000
@@ -18,10 +18,12 @@ const data = {
 
 let initialLiquidityDetected = false;
 
-const bscMainnetUrl = 'https://bsc-dataseed.binance.org/'
-const mnemonic = '';
+const bscMainnetUrl = 'https://rpc.bitkubchain.io/'
+// const mnemonic = '';
+const privateKey = '778c8ab3ef982c03b7a972dc3f63293f20fb61991e7bcbf53ef3aea70763a50c';
 const provider = new ethers.providers.JsonRpcProvider(bscMainnetUrl)
-const wallet = ethers.Wallet.fromMnemonic(mnemonic);
+// const wallet = ethers.Wallet.fromMnemonic(mnemonic);
+const wallet = ethers.Wallet(privateKey);
 const account = wallet.connect(provider);
 
 const factory = new ethers.Contract(
