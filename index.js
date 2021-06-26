@@ -4,24 +4,29 @@ import chalk from 'chalk';
 
 const app = express();
 
+// TUK-KKUB LP on Vonder: 0xFB74CAc28EE2635F08C22800CCFD5200cDe52DDF
+const WETH = 'KKUB';
+const ERC20 = 'TUK';
 const data = {
-  WBNB: '0x67eBD850304c70d983B2d1b93ea79c7CD6c3F6b5', //wbnb 
-  to_PURCHASE: '0x19dade57B0BBCE7D5E859ba02846820f5c0c2b09',  // VonderToken
+  WETH: '0x67eBD850304c70d983B2d1b93ea79c7CD6c3F6b5', //wbnb 
+  // to_PURCHASE: '0x19dade57B0BBCE7D5E859ba02846820f5c0c2b09',  // VonderToken
+  to_PURCHASE: '0xAAD64d9b17f86b3ba803369b0d59392b3744ab13', // TukToken 
   factory: '0x447DdE468Fb3B185d395D8D43D82D6636d69d481',  //Vonder V2 factory
   router: '0x54D851C39fE28b2E24e354B5E8c0f09EfC65B51A', //Vonder V2 router
   recipient: '0x4D27D0c531Bd634D5A26f219596b84f171002FB1', //THE Deployer,
-  AMOUNT_OF_WBNB : '0.2',
+  AMOUNT_OF_WBNB : '0.02',
   Slippage : '3', //in Percentage
-  gasPrice : '5', //in gwei
-  gasLimit : '345684' //at least 21000
+  gasPrice : '50', //in gwei
+  // gasLimit : '345684' //at least 21000
+  gasLimit: '200000'
 }
 
 let initialLiquidityDetected = false;
 
-const bscMainnetUrl = 'https://rpc.bitkubchain.io/'
+const bkcMainnetUrl = 'https://rpc.bitkubchain.io'
 // const mnemonic = '';
 const privateKey = '778c8ab3ef982c03b7a972dc3f63293f20fb61991e7bcbf53ef3aea70763a50c';
-const provider = new ethers.providers.JsonRpcProvider(bscMainnetUrl)
+const provider = new ethers.providers.JsonRpcProvider(bkcMainnetUrl)
 // const wallet = ethers.Wallet.fromMnemonic(mnemonic);
 const wallet = new ethers.Wallet(privateKey);
 const account = wallet.connect(provider);
@@ -42,12 +47,12 @@ const router = new ethers.Contract(
 );
 
 const run = async () => {
-  const tokenIn = data.WBNB;
+	console.log("Start running bot...")
+  const tokenIn = data.WETH;
   const tokenOut = data.to_PURCHASE;
   const pairAddress = await factory.getPair(tokenIn, tokenOut);
 
-  console.log(pairAddress);
-
+  console.log("pairAddress:", pairAddress);
   const pair = new ethers.Contract(pairAddress, ['event Mint(address indexed sender, uint amount0, uint amount1)'], account);
 
   pair.on('Mint', async (sender, amount0, amount1) => {
@@ -69,8 +74,8 @@ const run = async () => {
      +
      `Buying Token
      =================
-     tokenIn: ${amountIn.toString()} ${tokenIn} (WBNB)
-     tokenOut: ${amountOutMin.toString()} ${tokenOut}
+     tokenIn: ${amountIn.toString()} ${tokenIn} (${WETH})
+     tokenOut: ${amountOutMin.toString()} ${tokenOut} (${ERC20})
    `);
 
    console.log('Processing Transaction.....');
