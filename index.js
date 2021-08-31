@@ -14,7 +14,7 @@ const PORT = 5000;
 
 const data = {
   express: {
-    BKC: '0xafe60DBC58659F22c884B463Aefa43d84c229152', // Mainnet
+    BKC: '0x48AC444f395BC00907Efff79691B08d1e2e1296a', // Mainnet
     BSC: '0xE16f1b620123eF93B4Bb9B4fe5903E90BCb30588', // Testnet
   },
   AMOUNT_OF_WBNB: '0.02',
