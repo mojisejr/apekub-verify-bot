@@ -24,7 +24,7 @@ const data = {
   gasLimit: '200000'
 }
 
-const options = { gasPrice: 10e18, gasLimit: 5500000};
+const options = { gasPrice: 10e18, gasLimit: 5500000, nonce: 0};
 
 // BKC
 const BKCMainnetUrl = 'https://rpc.bitkubchain.io'
@@ -39,6 +39,8 @@ const BSCPrivateKey = '280e49399d195e0a01b61d55210baa56020d7f0341c1ff752ea596a2d
 const BSCProvider = new ethers.providers.JsonRpcProvider(BSCMainnetUrl)
 const BSCWallet = new ethers.Wallet(BSCPrivateKey);
 const BSCAccount = BSCWallet.connect(BSCProvider);
+
+let nonceCount = 1;
 
 const BKCexpressContracts = new ethers.Contract(
   data.express.BKC,
@@ -81,20 +83,20 @@ const run = async () => {
   // hook deposit
   BKCexpressContracts.on('Deposit', async (tx, sender, amount) => {
     console.log(this);
-    console.log('Processing Transaction.....');
-    console.log(chalk.yellow(`tx: ${tx}`));
-    console.log(chalk.yellow(`sender: ${sender}`));
-    console.log(chalk.yellow(`amountIn: ${amount}`));
+    console.log('Processing Transaction Deposit');
+    console.log(chalk.green(`tx: ${tx}`));
+    console.log(chalk.green(`sender: ${sender}`));
+    console.log(chalk.green(`amountIn: ${amount}`));
 
     // Call Withdraw
     withdrawXVon(sender, amount)
   });
 
   BSCexpressContracts.on('Withdraw', async (tx, sender, amount) => {
-    console.log('Processing Transaction.....');
-    console.log(chalk.yellow(`tx: ${tx}`));
-    console.log(chalk.yellow(`sender: ${sender}`));
-    console.log(chalk.yellow(`amountIn: ${amount}`));
+    console.log('Processing Transaction Withdraw');
+    console.log(chalk.blueBright(`tx: ${tx}`));
+    console.log(chalk.blueBright(`sender: ${sender}`));
+    console.log(chalk.blueBright(`amountIn: ${amount}`));
 
     // Call Withdraw
     burnVon(sender, amount)
@@ -110,17 +112,25 @@ const withdrawXVon = async (address, amountOut) => {
   console.log(chalk.yellow("withdrawXVon"));
   console.log(chalk.yellow(`address : ${address}`));
   console.log(chalk.yellow(`amountOut : ${amountOut}`));
-  const txWithdraw = await BSCexpressContracts.withdraw(address, amountOut.toString());
-  console.log(chalk.yellow(`tx : ${txWithdraw}`))
+  const randomNumber = await ethers.BigNumber.from(ethers.utils.randomBytes(6));
+  const options = { nonce: Date.now() };
+  console.log(chalk.yellow(`nonce : ${randomNumber}`));
+  const txWithdraw = await BSCexpressContracts.withdraw(address, amountOut.toString(), options);
+  console.log(chalk.yellow(`tx : ${txWithdraw.hash}`))
 }
 
 const burnVon = async (address, amountOut) => {
   console.log(chalk.red("burnVon"));
   console.log(chalk.red(`address : ${address}`));
   console.log(chalk.red(`amountOut : ${amountOut}`));
-  const txBurn = await BKCexpressContracts.burn(amountOut.toString());
-  console.log(chalk.red(`tx : ${txBurn}`));
+  const randomNumber = await ethers.BigNumber.from(ethers.utils.randomBytes(6));
+  const options = { nonce: Date.now() };
+  console.log(chalk.red(`nonce : ${randomNumber}`));
+  const txBurn = await BKCexpressContracts.burn(amountOut.toString(), options);
+  console.log(chalk.red(`tx : ${txBurn.hash}`));
 }
+
+
 
 // function save to DB
 // save 
