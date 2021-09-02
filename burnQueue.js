@@ -9,6 +9,8 @@ const options = {
     },
 }
 
+const burnQueue = new Queue('burn', options);
+
 // BKC
 const BKCMainnetUrl = process.env.BKC_MAINNET_URL
 const BKCPrivateKey = process.env.PRIVATE_KEY;
@@ -27,11 +29,12 @@ const BKCexpressContracts = new ethers.Contract(
     BKCAccount
 );
 
-const burnQueue = new Queue('burn');
 
-burnQueue.process(10, (job, done) => {
+burnQueue.process(function (job, done) {
     let address = job.data.address;
     let amount = job.data.amount;
+    console.log(`[burnQueue] - address : ${address}`);
+    console.log(`[burnQueue] - amount : ${amount}`);
 
     setTimeout(() => console.log("Getting withdraw queue"), 1000);
     setTimeout(() => {
@@ -42,6 +45,7 @@ burnQueue.process(10, (job, done) => {
     setTimeout(() => {
         burnVon(address, amount)
         job.reportProgress(100);
+        console.log("Done ... ");
         done();
     }, 2000);
 });
@@ -52,5 +56,6 @@ const burnVon = async (address, amountOut) => {
     console.log(chalk.red(`address : ${address}`));
     console.log(chalk.red(`amountOut : ${amountOut}`));
     const txBurn = await BKCexpressContracts.burn(amountOut);
+    txBurn.wait();
     console.log(chalk.red(`tx : ${txBurn.hash}`));
 }

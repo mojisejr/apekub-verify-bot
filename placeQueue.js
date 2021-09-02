@@ -1,28 +1,18 @@
 const Queue = require('bee-queue');
 
-const options = {
-  removeOnSuccess: true,
-  redis: {
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-  },
-}
+const withdrawQueue = new Queue('withdraw', { isWorker: false});
 
-const withdrawQueue = new Queue('withdraw', options);
+const burnQueue = new Queue('burn', { isWorker: false });
 
-const burnQueue = new Queue('burn', options);
-
-const placeWithdrawQueue = (withdrawQueueData) => {
-  console.log(JSON.stringify(withdrawQueueData));
-  const job = withdrawQueue.createJob(withdrawQueueData)
+const placeWithdrawQueue = async (order) => {
+  const job = await withdrawQueue.createJob(order)
     .retries(5)
     .save();
-  console.log(JSON.stringify(job));
   return job;
 };
 
-const placeBurnQueue = (burnQueueData) => {
-  return burnQueue.createJob(burnQueueData)
+const placeBurnQueue = (order) => {
+  return burnQueue.createJob(order)
     .retries(5)
     .save();
 };
@@ -36,8 +26,6 @@ burnQueue.on("succeeded", (job) => {
   // Notify the client via push notification, web socket or email etc.
   console.log(`🧾 ${job.data} ready 😋`);
 });
-
-
 
 module.exports = {
   placeWithdrawQueue: placeWithdrawQueue,

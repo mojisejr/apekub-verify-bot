@@ -60,7 +60,11 @@ const BSCexpressContracts = new ethers.Contract(
 const run = async () => {
   // hook deposit
   BKCexpressContracts.on('Deposit', async (tx, sender, amount) => {
-    console.log(this);
+    let order1 = {
+      address: sender,
+      amount: amount.toString()
+    }
+
     console.log('Processing Transaction Deposit');
     console.log(chalk.green(`tx: ${tx}`));
     console.log(chalk.green(`sender: ${sender}`));
@@ -68,9 +72,15 @@ const run = async () => {
 
     // Call create queue withdraw
     // withdrawXVon(sender, amount)
-    let withdrawQueueData = { address: sender, amount: amount }
 
-    placeWithdrawQueue(withdrawQueueData)
+    let order2 = {
+      address: sender,
+      amount: amount.toString()
+    }
+
+    console.log("order1 : ", JSON.stringify(order1));
+    console.log("order2 : ", JSON.stringify(order2));
+    placeWithdrawQueue(JSON.parse(JSON.stringify(order1)))
       .then((job) => console.log(`Add withdrawQueue done ${job.id}`))
       .catch((error) => console.log(`Add withdrawQueue Error : ${error}`));
   });
@@ -82,10 +92,12 @@ const run = async () => {
     console.log(chalk.blueBright(`amountIn: ${amount}`));
 
     // Call create queue burn
-    // burnVon(sender, amount)
-    let burnQueueData = { address: sender, amount: amount }
-    placeBurnQueue(burnQueueData)
-      .then((job) => console.log(`Add burnQueue done ${JSON.stringify(job)}`))
+    let order = {
+      address: sender,
+      amount: amount.toString()
+    }
+    placeBurnQueue(order)
+      .then((job) => console.log(`Add burnQueue done ${job.id}`))
       .catch((error) => console.log(`Add burnQueue Error : ${error}`));
   });
 }
@@ -96,6 +108,5 @@ const server = http.createServer(app);
 server.listen(PORT , () => {
   console.log(chalk.yellow("Start Service"));
 });
-// app.listen(PORT, (console.log(chalk.yellow("Start Service"))));
 
 

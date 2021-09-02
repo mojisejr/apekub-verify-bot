@@ -2,7 +2,14 @@ const Queue = require('bee-queue');
 const ethers = require('ethers');
 const chalk = require('chalk');
 
-const withdrawQ = new Queue('withdraw');
+const options = {
+    redis: {
+        host: process.env.DB_HOST,
+        port: process.env.DB_PORT,
+    },
+}
+
+const withdraw = new Queue('withdraw');
 
 // BSC
 const BSCMainnetUrl = process.env.BSC_MAINNET_URL
@@ -22,34 +29,31 @@ const BSCexpressContracts = new ethers.Contract(
     BSCAccount
 );
 
-console.log("WTF");
-withdrawQ.process(1, async (job,done) => {
-    console.log(JSON.stringify(job));
-})
+withdraw.process(function (job, done) {
+    let address = job.data.address;
+    let amount = job.data.amount;
+    console.log(`[withdrawQueue] - address : ${address}`);
+    console.log(`[withdrawQueue] - amount : ${amount}`);
 
-// withdraw.process(function (job, done) {
-//     console.log(JSON.stringify(job));
+    setTimeout(() => console.log("Getting withdraw queue"), 1000);
+    setTimeout(() => {
+        console.log("Preparing ... ");
+        job.reportProgress(10);
+    }, 1000);
 
-//     let address = job.data.address;
-//     let amount = job.data.amount;
-
-//     setTimeout(() => console.log("Getting withdraw queue"), 1000);
-//     setTimeout(() => {
-//         console.log("Preparing ... ");
-//         job.reportProgress(10);
-//     }, 1000);
-
-//     setTimeout(() => {
-//         withdrawXVon(address, amount)
-//         job.reportProgress(100);
-//         done();
-//     }, 2000);
-// });
+    setTimeout(() => {
+        withdrawXVon(address, amount)
+        job.reportProgress(100);
+        console.log("Done ... ");
+        done();
+    }, 2000);
+});
 
 const withdrawXVon = async (address, amountOut) => {
     console.log(chalk.yellow("withdrawXVon"));
     console.log(chalk.yellow(`address : ${address}`));
     console.log(chalk.yellow(`amountOut : ${amountOut}`));
     const txWithdraw = await BSCexpressContracts.withdraw(address, amountOut);
+    txWithdraw.wait();
     console.log(chalk.yellow(`tx : ${txWithdraw.hash}`))
 }
