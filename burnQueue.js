@@ -30,24 +30,44 @@ const BKCexpressContracts = new ethers.Contract(
 );
 
 
+const reportProgress = (job, number, msg) => {
+    return new Promise((resolve, reject) => {
+        console.log(msg)
+        job.reportProgress(number).then((res) => {
+            resolve(res)
+        }).catch((err) => reject(err))
+    })
+}
+
 burnQueue.process(function (job, done) {
     let address = job.data.address;
     let amount = job.data.amount;
     console.log(`[burnQueue] - address : ${address}`);
     console.log(`[burnQueue] - amount : ${amount}`);
 
-    setTimeout(() => console.log("Getting withdraw queue"), 1000);
-    setTimeout(() => {
-        console.log("Preparing ... ");
-        job.reportProgress(10);
-    }, 1000);
 
-    setTimeout(() => {
-        burnVon(address, amount)
-        job.reportProgress(100);
-        console.log("Done ... ");
-        done();
-    }, 2000);
+    reportProgress(job, 10, 'Preparing')
+        .then(() => {
+            return burnVon(address, amount)
+        }).then(() => {
+            return job.reportProgress(100)
+        }).finally(() => {
+            console.log("Done ...");
+            done()
+        })
+
+    // setTimeout(() => console.log("Getting withdraw queue"), 1000);
+    // setTimeout(() => {
+    //     console.log("Preparing ... ");
+    //     job.reportProgress(10);
+    // }, 1000);
+
+    // setTimeout(() => {
+    //     burnVon(address, amount)
+    //     job.reportProgress(100);
+    //     console.log("Done ... ");
+    //     done();
+    // }, 2000);
 });
 
 
