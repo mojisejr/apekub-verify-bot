@@ -21,14 +21,14 @@ const options = { gasPrice: 10e18, gasLimit: 5500000, nonce: 0 };
 
 // BKC
 const BKCMainnetUrl = process.env.BKC_MAINNET_URL
-const BKCPrivateKey = process.env.PRIVATE_KEY;
+const BKCPrivateKey = process.env.PRIVATE_KEY_BKC;
 const BKCProvider = new ethers.providers.JsonRpcProvider(BKCMainnetUrl)
 const BKCWallet = new ethers.Wallet(BKCPrivateKey);
 const BKCAccount = BKCWallet.connect(BKCProvider);
 
 // BSC
 const BSCMainnetUrl = process.env.BSC_MAINNET_URL
-const BSCPrivateKey = process.env.PRIVATE_KEY;
+const BSCPrivateKey = process.env.PRIVATE_KEY_BSC;
 const BSCProvider = new ethers.providers.JsonRpcProvider(BSCMainnetUrl)
 const BSCWallet = new ethers.Wallet(BSCPrivateKey);
 const BSCAccount = BSCWallet.connect(BSCProvider);

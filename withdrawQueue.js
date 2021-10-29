@@ -9,11 +9,16 @@ const options = {
     },
 }
 
+const ethersOptions = {
+    gasLimit: 50000,
+    gasPrice: ethers.utils.parseUnits('5', 'gwei')
+};
+
 const withdraw = new Queue('withdraw');
 
 // BSC
 const BSCMainnetUrl = process.env.BSC_MAINNET_URL
-const BSCPrivateKey = process.env.PRIVATE_KEY;
+const BSCPrivateKey = process.env.PRIVATE_KEY_BSC;
 const BSCProvider = new ethers.providers.JsonRpcProvider(BSCMainnetUrl)
 const BSCWallet = new ethers.Wallet(BSCPrivateKey);
 const BSCAccount = BSCWallet.connect(BSCProvider);
@@ -33,10 +38,19 @@ const withdrawXVon = async (address, amountOut) => {
     console.log(chalk.yellow("withdrawXVon"));
     console.log(chalk.yellow(`address : ${address}`));
     console.log(chalk.yellow(`amountOut : ${amountOut}`));
-    const txWithdraw = await BSCexpressContracts.withdraw(address, amountOut);
-    txWithdraw.wait();
-    console.log(chalk.yellow(`tx : ${txWithdraw.hash}`))
-    return txWithdraw
+    try {
+        const txWithdraw = await BSCexpressContracts.withdraw(
+            address,
+            amountOut,
+            {
+                gasLimit: 70000
+            });
+        txWithdraw.wait();
+        console.log(chalk.yellow(`tx : ${txWithdraw.hash}`))
+        return txWithdraw
+    } catch (error) {
+        return error
+    }
 }
 
 const reportProgress = (job, number, msg) => {
@@ -57,25 +71,20 @@ withdraw.process(1, function (job, done) {
     reportProgress(job, 10, 'Preparing')
         .then(() => {
             return withdrawXVon(address, amount)
+        }).then((error) => {
+            // Call create queue burn after tx error
+            console.log("Error : ", error);
+            let order = {
+                address: job.data.address,
+                amount: job.data.amount.toString()
+            }
+            placeBurnQueue(order)
+                .then((job) => console.log(`Add burnQueue done ${job.id}`))
+                .catch((error) => console.log(`Add burnQueue Error : ${error}`));
         }).then(() => {
             return job.reportProgress(100)
         }).finally(() => {
             console.log("Done ...");
             done()
         });
-    // await
-    // await reportProgress(job, 100, '')
-
-    // setTimeout(() => console.log("Getting withdraw queue"), 1000);
-    // await setTimeout(async () => {
-    //     console.log("Preparing ... ");
-    //     job.reportProgress(10);
-    // }, 3000);
-
-    // await setTimeout(async () => {
-    //     await withdrawXVon(address, amount)
-    //     job.reportProgress(100);
-    //     console.log("Done ... ");
-    //     done();
-    // }, 2000);
 });

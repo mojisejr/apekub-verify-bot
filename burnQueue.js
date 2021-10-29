@@ -13,7 +13,7 @@ const burnQueue = new Queue('burn', options);
 
 // BKC
 const BKCMainnetUrl = process.env.BKC_MAINNET_URL
-const BKCPrivateKey = process.env.PRIVATE_KEY;
+const BKCPrivateKey = process.env.PRIVATE_KEY_BKC;
 const BKCProvider = new ethers.providers.JsonRpcProvider(BKCMainnetUrl)
 const BKCWallet = new ethers.Wallet(BKCPrivateKey);
 const BKCAccount = BKCWallet.connect(BKCProvider);
@@ -55,19 +55,6 @@ burnQueue.process(function (job, done) {
             console.log("Done ...");
             done()
         })
-
-    // setTimeout(() => console.log("Getting withdraw queue"), 1000);
-    // setTimeout(() => {
-    //     console.log("Preparing ... ");
-    //     job.reportProgress(10);
-    // }, 1000);
-
-    // setTimeout(() => {
-    //     burnVon(address, amount)
-    //     job.reportProgress(100);
-    //     console.log("Done ... ");
-    //     done();
-    // }, 2000);
 });
 
 
