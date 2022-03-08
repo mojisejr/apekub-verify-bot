@@ -1,112 +1,162 @@
-require('dotenv').config();
-require('./burnQueue');
-require('./withdrawQueue');
+require("dotenv").config({
+  path: "config.env",
+});
 
-const ethers = require('ethers');
-const express = require('express');
-const chalk = require('chalk');
-const http = require('http');
+require("./tokenMintedQueue");
+require("./tokenBurnedQueue");
+require("./tokenTransferredQueue");
 
-const { placeWithdrawQueue, placeBurnQueue } = require('./placeQueue');
+const ethers = require("ethers");
+const express = require("express");
+const chalk = require("chalk");
+const http = require("http");
+const {
+  placeTokensMintedQueue,
+  placeTokensBurnedQueue,
+  placeTokensTransferredQueue,
+} = require("./placeQueue");
 
 const app = express();
 app.use(express.json());
-app.use(express.urlencoded({
-  extended: false
-}));
+app.use(
+  express.urlencoded({
+    extended: false,
+  })
+);
 
-const PORT = 5000;
+const PORT = 1234;
 
 const options = { gasPrice: 10e18, gasLimit: 5500000, nonce: 0 };
 
-// BKC
-const BKCMainnetUrl = process.env.BKC_MAINNET_URL
-const BKCPrivateKey = process.env.PRIVATE_KEY_BKC;
-const BKCProvider = new ethers.providers.JsonRpcProvider(BKCMainnetUrl)
-const BKCWallet = new ethers.Wallet(BKCPrivateKey);
-const BKCAccount = BKCWallet.connect(BKCProvider);
+// // BK
+// const BKCMainnetUrl = process.env.LOCAL_RPC;
+// const BKCPrivateKey = process.env.PRIVATE_KEY;
+// const BKCProvider = new ethers.providers.JsonRpcProvider(BSCMainnetUrl);
+// const BKCWallet = new ethers.Wallet(BKCPrivateKey);
+// const BKCAccount = BKCWallet.connect(BKCProvider);
 
 // BSC
-const BSCMainnetUrl = process.env.BSC_MAINNET_URL
-const BSCPrivateKey = process.env.PRIVATE_KEY_BSC;
-const BSCProvider = new ethers.providers.JsonRpcProvider(BSCMainnetUrl)
+const BSCMainnetUrl = process.env.LOCAL_RPC;
+const BSCPrivateKey = process.env.PRIVATE_KEY;
+const BSCProvider = new ethers.providers.JsonRpcProvider(BSCMainnetUrl);
 const BSCWallet = new ethers.Wallet(BSCPrivateKey);
 const BSCAccount = BSCWallet.connect(BSCProvider);
 
 let nonceCount = 1;
 
-const BKCexpressContracts = new ethers.Contract(
-  process.env.BKC_EXPRESS_ADDRESS,
-  [
-    'function withdraw(address _receiver, uint256 _amount)',
-    'function burn(uint256 _amountBurn)',
-    'event Deposit(address, address, uint256);',
-    'event Withdraw(address, address, uint256);'
-  ],
-  BKCAccount
+const foreignContract = new ethers.Contract(
+  process.env.BRIDGE_FOREIGN_ADDRESS,
+  ["event TokensMinted(uint256[] _tokenIds, address indexed _owner)"],
+  BSCAccount
 );
 
-const BSCexpressContracts = new ethers.Contract(
-  process.env.BSC_EXPRESS_ADDRESS,
+const homeContract = new ethers.Contract(
+  process.env.BRIDGE_HOME_ADDRESS,
   [
-    'function withdraw(address _receiver, uint256 _amount)',
-    'function burn(uint256 _amountBurn)',
-    'event Deposit(address, address, uint256);',
-    'event Withdraw(address, address, uint256);'
+    "function withdraw(address _receiver, uint256 _amount)",
+    "function updateAndTransferTokensOf(address _owner)",
+    "event TokensMinted(uint256[] _tokenIds, address indexed _owner)",
+    "event TokensTransferred(uint256[] _tokenIds, address indexed _owner)",
+    "event TokensBurned(uint256[] _tokenIds, address indexed _owner)",
   ],
   BSCAccount
 );
 
 const run = async () => {
-  // hook deposit
-  BKCexpressContracts.on('Deposit', async (tx, sender, amount) => {
-    let order1 = {
-      address: sender,
-      amount: amount.toString()
-    }
+  homeContract.on("TokensTransferred", async (tx, sender) => {
+    console.log(
+      chalk.yellowBright("1) Processing Transaction TokensTransferred")
+    );
+    const tokens = tx
+      .toString()
+      .split(",")
+      .map((x) => parseInt(x));
+    console.log("owner: ", sender);
+    console.log("tokens: ", tokens);
 
-    console.log('Processing Transaction Deposit');
-    console.log(chalk.green(`tx: ${tx}`));
-    console.log(chalk.green(`sender: ${sender}`));
-    console.log(chalk.green(`amountIn: ${amount}`));
-
-    // Call create queue withdraw
-    // withdrawXVon(sender, amount)
-
-    let order2 = {
-      address: sender,
-      amount: amount.toString()
-    }
-
-    console.log("order1 : ", JSON.stringify(order1));
-    console.log("order2 : ", JSON.stringify(order2));
-    placeWithdrawQueue(JSON.parse(JSON.stringify(order1)))
-      .then((job) => console.log(`Add withdrawQueue done ${job.id}`))
-      .catch((error) => console.log(`Add withdrawQueue Error : ${error}`));
-  });
-
-  BSCexpressContracts.on('Withdraw', async (tx, sender, amount) => {
-    console.log('Processing Transaction Withdraw');
-    console.log(chalk.blueBright(`tx: ${tx}`));
-    console.log(chalk.blueBright(`sender: ${sender}`));
-    console.log(chalk.blueBright(`amountIn: ${amount}`));
-
-    // Call create queue burn
     let order = {
       address: sender,
-      amount: amount.toString()
-    }
-    placeBurnQueue(order)
-      .then((job) => console.log(`Add burnQueue done ${job.id}`))
-      .catch((error) => console.log(`Add burnQueue Error : ${error}`));
+      tokenIds: tokens,
+    };
+
+    placeTokensMintedQueue(order)
+      .then((job) =>
+        console.log(
+          chalk.greenBright(
+            `[controller]=> Add tokenMintedQueue done ${job.id}`
+          )
+        )
+      )
+      .catch((error) =>
+        console.log(`[controller]=> Add TokenMintedQueue Error ${error}`)
+      );
   });
-}
+
+  foreignContract.on("TokensMinted", async (tx, sender) => {
+    const tokens = tx
+      .toString()
+      .split(",")
+      .map((x) => parseInt(x));
+    console.log(chalk.yellowBright("2) Processing Transaction TokensMinted"));
+    console.log("owner: ", sender);
+    console.log("tokens: ", tokens);
+    // foreign update home trasferredTokenOf to reconize the receiving
+
+    let order = {
+      address: sender,
+      tokenIds: tokens,
+    };
+
+    placeTokensBurnedQueue(order)
+      .then((job) =>
+        console.log(
+          chalk.greenBright(
+            `[controller]=> Add TokensBurnedQueue done ${job.id}`
+          )
+        )
+      )
+      .catch((error) =>
+        console.log(`[controller]=> Add TokensBurnedQueue Error ${error}`)
+      );
+  });
+
+  homeContract.on("TokensBurned", async (tx, sender) => {
+    const tokens = tx
+      .toString()
+      .split(",")
+      .map((x) => parseInt(x));
+    console.log(chalk.yellowBright("3) Processing Transaction TokensBurned"));
+    console.log("owner: ", sender);
+    console.log("tokens: ", tokens);
+    // foreign update home trasferredTokenOf to reconize the receiving
+
+    let order = {
+      address: sender,
+      tokenIds: tokens,
+    };
+
+    placeTokensTransferredQueue(order)
+      .then((job) =>
+        console.log(
+          chalk.greenBright(
+            `[controller]=> Add TokensBurnedQueue done ${job.id}`
+          )
+        )
+      )
+      .catch((error) =>
+        console.log(`[controller]=> Add TokensBurnedQueue Error ${error}`)
+      );
+  });
+};
 
 run();
 
 const server = http.createServer(app);
-server.listen(PORT , () => {
-  console.log(chalk.yellow("Start Service"));
+server.listen(PORT, () => {
+  console.log(
+    chalk.blueBright(
+      "==== nft Bridge is now live ====",
+      new Date().toDateString()
+    )
+  );
 });
-
-

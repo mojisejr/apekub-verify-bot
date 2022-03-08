@@ -1,33 +1,41 @@
-const Queue = require('bee-queue');
+const Queue = require("bee-queue");
 
-const withdrawQueue = new Queue('withdraw', { isWorker: false});
+const tokensMintedQueue = new Queue("tokensMinted", {
+  isWorker: false,
+});
 
-const burnQueue = new Queue('burn', { isWorker: false });
+const tokenBurnedQueue = new Queue("tokensBurned", { isWorker: false });
 
-const placeWithdrawQueue = async (order) => {
-  const job = await withdrawQueue.createJob(order)
-    .retries(5)
-    .save();
-  return job;
-};
+const tokensTransferredQueue = new Queue("tokenTransferred", {
+  isWorker: false,
+});
 
-const placeBurnQueue = (order) => {
-  return burnQueue.createJob(order)
-    .retries(5)
-    .save();
-};
+function placeTokensMintedQueue(order) {
+  return tokensMintedQueue.createJob(order).retries(5).save();
+}
 
-withdrawQueue.on("succeeded", (job) => {
-  // Notify the client via push notification, web socket or email etc.
+function placeTokensBurnedQueue(order) {
+  return tokenBurnedQueue.createJob(order).retries(5).save();
+}
+
+function placeTokensTransferredQueue(order) {
+  return tokenBurnedQueue.createJob(order).retries(5).save();
+}
+
+tokensMintedQueue.on("succeeded", (job) => {
   console.log(`🧾 ${job.data} ready 😋`);
 });
 
-burnQueue.on("succeeded", (job) => {
-  // Notify the client via push notification, web socket or email etc.
+tokenBurnedQueue.on("succeeded", (job) => {
+  console.log(`🧾 ${job.data} ready 😋`);
+});
+
+tokensTransferredQueue.on("succeeded", (job) => {
   console.log(`🧾 ${job.data} ready 😋`);
 });
 
 module.exports = {
-  placeWithdrawQueue: placeWithdrawQueue,
-  placeBurnQueue: placeBurnQueue
+  placeTokensMintedQueue: placeTokensMintedQueue,
+  placeTokensBurnedQueue: placeTokensBurnedQueue,
+  placeTokensTransferredQueue: placeTokensTransferredQueue,
 };
