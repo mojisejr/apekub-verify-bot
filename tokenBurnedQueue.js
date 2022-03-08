@@ -33,7 +33,7 @@ const foreignContract = new ethers.Contract(
   [
     "function updateHomeTransferredTokensOf(address _owner, uint256[] _tokenIds)",
     "function mintTokensOf(address _owner) payable",
-    "function getTokensToMintOf(address _owner) view returns(uint256[] memory)",
+    "function getTokensToTransferOf(address _owner) view returns(uint256[] memory)",
     "event TokensMinted(uint256[] _tokenIds, address indexed _owner)",
     "event TokensTransferred(uint256[] _tokenIds, address indexed _owner)",
   ],
@@ -42,7 +42,7 @@ const foreignContract = new ethers.Contract(
 
 async function checkMintedTokensInForeign(owner, tokenIds) {
   console.log("[burningQueue]==> check minted token on foreign");
-  let tx = await foreignContract.getTokensToMintOf(owner);
+  let tx = await foreignContract.getTokensToTransferOf(owner);
   let tokensFromForeign = tx
     .toString()
     .split(",")

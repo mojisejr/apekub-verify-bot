@@ -46,6 +46,9 @@ async function checkReceivedTokensInHome(owner, tokenIds) {
     .split(",")
     .map((token) => parseInt(token));
 
+  console.log("input", tokenIds);
+  console.log("compare", tokensFromHome);
+
   const result = JSON.stringify(tokensFromHome) === JSON.stringify(tokenIds);
   if (!result) {
     return false;
@@ -61,11 +64,7 @@ async function updateReceivedTokensInForeign(owner, tokenIds) {
 
 async function mintTokensOf(owner, tokenIds) {
   console.log("[mintingQueue]==> token minting called");
-  let totalPrice = tokenIds.length * 0.01;
-  console.log("[mintingQueue]===> total minting price", totalPrice);
-  totalPrice = ethers.utils.parseEther(totalPrice.toString());
-
-  const tx = await foreignContract.mintTokensOf(owner, { value: totalPrice });
+  const tx = await foreignContract.mintTokensOf(owner);
   return tx;
 }
 
@@ -97,6 +96,10 @@ tokensMinting.process(1, function (job, done) {
       if (result) {
         await updateReceivedTokensInForeign(owner, tokens);
         return await mintTokensOf(owner, tokens);
+      } else {
+        console.log(
+          chalk.red("[mintingQueue]=> Error cannot mint tokens for ", owner)
+        );
       }
     })
     .then((tx) => {

@@ -139,12 +139,14 @@ const run = async () => {
       .then((job) =>
         console.log(
           chalk.greenBright(
-            `[controller]=> Add TokensBurnedQueue done ${job.id}`
+            `[controller]=> Add TokensTransferred[to owner] done ${job.id}`
           )
         )
       )
       .catch((error) =>
-        console.log(`[controller]=> Add TokensBurnedQueue Error ${error}`)
+        console.log(
+          `[controller]=> Add TokensTransferred[to owner] Error ${error}`
+        )
       );
   });
 };

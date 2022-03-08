@@ -22,6 +22,7 @@ const homeContract = new ethers.Contract(
     "function getReceivedTokensOf(address _owner) view returns(uint256[] memory)",
     "function updateMintedTokensOf(address _owner, uint256[] calldata _tokenIds)",
     "function burnTokensOf(address _owner)",
+    "function checkBurnedTokensOf(address _owner) view returns(bool)",
     "event TokensMinted(uint256[] _tokenIds, address indexed _owner)",
     "event TokensTransferred(uint256[] _tokenIds, address indexed _owner)",
   ],
@@ -40,6 +41,18 @@ const foreignContract = new ethers.Contract(
   ],
   BSCAccount
 );
+
+async function checkIfTokensBurnedInHome(owner) {
+  console.log(
+    "[tokensTransferred]==> check if tokens have already burned before transfer to owner"
+  );
+  const result = await homeContract.checkBurnedTokensOf(owner);
+  if (result) {
+    return true;
+  } else {
+    return false;
+  }
+}
 
 async function transferTokensTo(owner) {
   console.log("[tokensTransferred]==> transfer token to ", owner);
@@ -64,24 +77,34 @@ tokensBurning.process(function (job, done) {
   let owner = job.data.address;
   let tokens = job.data.tokenIds;
 
-  console.log(`[tokensTrasferingQueue]=> - owner : ${owner}`);
-  console.log("[tokensTrasferingQueue]=> - tokens : ", tokens);
+  console.log(`[tokensTransferingQueue]=> - owner : ${owner}`);
+  console.log("[tokensTransferingQueue]=> - tokens : ", tokens);
 
-  reportProgress(job, 10, "[tokensTrasferingQueue]=> Preparing..")
+  reportProgress(job, 10, "[tokensTransferingQueue]=> Preparing..")
     .then(async () => {
-      return await transferTokensTo(owner);
+      const result = await checkIfTokensBurnedInHome(owner);
+      if (result) {
+        return await transferTokensTo(owner);
+      } else {
+        console.log(
+          chalk.red(
+            "[tokensTransferingQueue]=> Error cannot transfer token to",
+            owner
+          )
+        );
+      }
     })
     .then((tx) => {
       console.log(
         chalk.redBright(
-          "[tokensTrasferingQueue]==> transfering tx-hash:",
+          "[tokensTransferingQueue]==> transfering tx-hash:",
           tx.hash
         )
       );
       job.reportProgress(100);
     })
     .finally(() => {
-      console.log("[tokensTrasferingQueue]=> done...");
+      console.log("[tokensTransferingQueue]=> done...");
       console.log("========================\n");
       done();
     });
