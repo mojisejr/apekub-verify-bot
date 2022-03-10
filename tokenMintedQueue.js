@@ -1,17 +1,17 @@
 const Queue = require("bee-queue");
 const chalk = require("chalk");
 const { ethers } = require("ethers");
-const { placeTokensBurnedQueue } = require("./placeQueue");
 
 const tokensMinting = new Queue("tokensMinted");
+const options = { gasPrice: 10e18, gasLimit: 5500000, nonce: 0 };
 
-// const BKCMainnetUrl = process.env.LOCAL_RPC;
-// const BKCPrivateKey = process.env.PRIVATE_KEY;
-// const BKCProvider = new ethers.providers.JsonRpcProvider(BKCMainnetUrl);
-// const BKCWallet = new ethers.Wallet(BKCPrivateKey);
-// const BKCAccount = BKCWallet.connect(BKCProvider);
+const BKCMainnetUrl = process.env.MUMBAI;
+const BKCPrivateKey = process.env.PRIVATE_KEY;
+const BKCProvider = new ethers.providers.JsonRpcProvider(BKCMainnetUrl);
+const BKCWallet = new ethers.Wallet(BKCPrivateKey);
+const BKCAccount = BKCWallet.connect(BKCProvider);
 
-const BSCMainnetUrl = process.env.LOCAL_RPC;
+const BSCMainnetUrl = process.env.RINKEBY;
 const BSCPrivateKey = process.env.PRIVATE_KEY;
 const BSCProvider = new ethers.providers.JsonRpcProvider(BSCMainnetUrl);
 const BSCWallet = new ethers.Wallet(BSCPrivateKey);
@@ -24,7 +24,7 @@ const homeContract = new ethers.Contract(
     "event TokensMinted(uint256[] _tokenIds, address indexed _owner)",
     "event TokensTransferred(uint256[] _tokenIds, address indexed _owner)",
   ],
-  BSCAccount
+  BKCAccount
 );
 
 const foreignContract = new ethers.Contract(
@@ -95,7 +95,7 @@ tokensMinting.process(1, function (job, done) {
       const result = await checkReceivedTokensInHome(owner, tokens);
       if (result) {
         await updateReceivedTokensInForeign(owner, tokens);
-        return await mintTokensOf(owner, tokens);
+        return await mintTokensOf(owner, tokens, options);
       } else {
         console.log(
           chalk.red("[mintingQueue]=> Error cannot mint tokens for ", owner)

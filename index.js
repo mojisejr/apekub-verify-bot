@@ -28,15 +28,13 @@ const PORT = 1234;
 
 const options = { gasPrice: 10e18, gasLimit: 5500000, nonce: 0 };
 
-// // BK
-// const BKCMainnetUrl = process.env.LOCAL_RPC;
-// const BKCPrivateKey = process.env.PRIVATE_KEY;
-// const BKCProvider = new ethers.providers.JsonRpcProvider(BSCMainnetUrl);
-// const BKCWallet = new ethers.Wallet(BKCPrivateKey);
-// const BKCAccount = BKCWallet.connect(BKCProvider);
+const BKCMainnetUrl = process.env.MUMBAI;
+const BKCPrivateKey = process.env.PRIVATE_KEY;
+const BKCProvider = new ethers.providers.JsonRpcProvider(BKCMainnetUrl);
+const BKCWallet = new ethers.Wallet(BKCPrivateKey);
+const BKCAccount = BKCWallet.connect(BKCProvider);
 
-// BSC
-const BSCMainnetUrl = process.env.LOCAL_RPC;
+const BSCMainnetUrl = process.env.RINKEBY;
 const BSCPrivateKey = process.env.PRIVATE_KEY;
 const BSCProvider = new ethers.providers.JsonRpcProvider(BSCMainnetUrl);
 const BSCWallet = new ethers.Wallet(BSCPrivateKey);
@@ -59,7 +57,7 @@ const homeContract = new ethers.Contract(
     "event TokensTransferred(uint256[] _tokenIds, address indexed _owner)",
     "event TokensBurned(uint256[] _tokenIds, address indexed _owner)",
   ],
-  BSCAccount
+  BKCAccount
 );
 
 const run = async () => {
