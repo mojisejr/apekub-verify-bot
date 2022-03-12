@@ -1,3 +1,4 @@
+const { NonceManager } = require("@ethersproject/experimental");
 const Queue = require("bee-queue");
 const chalk = require("chalk");
 const { ethers } = require("ethers");
@@ -10,12 +11,14 @@ const BKCPrivateKey = process.env.PRIVATE_KEY;
 const BKCProvider = new ethers.providers.JsonRpcProvider(BKCMainnetUrl);
 const BKCWallet = new ethers.Wallet(BKCPrivateKey);
 const BKCAccount = BKCWallet.connect(BKCProvider);
+const BKCManager = new NonceManager(BKCAccount);
 
 const BSCMainnetUrl = process.env.RINKEBY;
 const BSCPrivateKey = process.env.PRIVATE_KEY;
 const BSCProvider = new ethers.providers.JsonRpcProvider(BSCMainnetUrl);
 const BSCWallet = new ethers.Wallet(BSCPrivateKey);
 const BSCAccount = BSCWallet.connect(BSCProvider);
+const BSCManager = new NonceManager(BSCAccount);
 
 const homeContract = new ethers.Contract(
   process.env.BRIDGE_HOME_ADDRESS,
@@ -47,6 +50,8 @@ async function checkIfTokensBurnedInHome(owner) {
   console.log(
     "[tokensTransferred]==> check if tokens have already burned before transfer to owner"
   );
+  let currentNonce = await BKCAccount.getTransactionCount();
+  console.log(`[tokenTransferred]==> Current Nonce: [${currentNonce}]`);
   const result = await homeContract.checkBurnedTokensOf(owner);
   if (result) {
     return true;
@@ -57,7 +62,15 @@ async function checkIfTokensBurnedInHome(owner) {
 
 async function transferTokensTo(owner) {
   console.log("[tokensTransferred]==> transfer token to ", owner);
-  const tx = await foreignContract.transferTokensTo(owner);
+  //increse transaction count by 1
+  BSCManager.incrementTransactionCount();
+  let currentNonce = await BSCAccount.getTransactionCount();
+  console.log(`[tokenTransferred]==> Current Nonce: [${currentNonce}]`);
+  const tx = await foreignContract.transferTokensTo(owner, {
+    gasPrice: ethers.utils.parseUnits("3", "gwei"),
+    gasLimit: 5500000,
+  });
+
   return tx;
 }
 

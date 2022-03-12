@@ -1,6 +1,7 @@
+const { NonceManager } = require("@ethersproject/experimental");
 const Queue = require("bee-queue");
 const chalk = require("chalk");
-const { ethers } = require("ethers");
+const { ethers, BigNumber } = require("ethers");
 
 const tokensMinting = new Queue("tokensMinted");
 const options = { gasPrice: 10e18, gasLimit: 5500000, nonce: 0 };
@@ -10,12 +11,14 @@ const BKCPrivateKey = process.env.PRIVATE_KEY;
 const BKCProvider = new ethers.providers.JsonRpcProvider(BKCMainnetUrl);
 const BKCWallet = new ethers.Wallet(BKCPrivateKey);
 const BKCAccount = BKCWallet.connect(BKCProvider);
+const BKCManager = new NonceManager(BKCAccount);
 
 const BSCMainnetUrl = process.env.RINKEBY;
 const BSCPrivateKey = process.env.PRIVATE_KEY;
 const BSCProvider = new ethers.providers.JsonRpcProvider(BSCMainnetUrl);
 const BSCWallet = new ethers.Wallet(BSCPrivateKey);
 const BSCAccount = BSCWallet.connect(BSCProvider);
+const BSCManager = new NonceManager(BSCAccount);
 
 const homeContract = new ethers.Contract(
   process.env.BRIDGE_HOME_ADDRESS,
@@ -40,6 +43,8 @@ const foreignContract = new ethers.Contract(
 
 async function checkReceivedTokensInHome(owner, tokenIds) {
   console.log("[mintingQueue]==> check token at home");
+  let currentNonce = await BKCAccount.getTransactionCount();
+  console.log(`[mintingQueue]==> Current Nonce: [${currentNonce}]`);
   let tx = await homeContract.getReceivedTokensOf(owner);
   let tokensFromHome = tx
     .toString()
@@ -59,12 +64,23 @@ async function checkReceivedTokensInHome(owner, tokenIds) {
 
 async function updateReceivedTokensInForeign(owner, tokenIds) {
   console.log("[mintingQueue]==> update checked at foreign");
+  let currentNonce = await BSCAccount.getTransactionCount();
+  console.log(`[mintingQueue]==> Current Nonce: [${currentNonce}]`);
   await foreignContract.updateHomeTransferredTokensOf(owner, tokenIds);
 }
 
 async function mintTokensOf(owner, tokenIds) {
   console.log("[mintingQueue]==> token minting called");
-  const tx = await foreignContract.mintTokensOf(owner);
+  //wait for 4 nonce to finalize previous transaction before burn
+  //increase transaction count by 1
+  BSCManager.incrementTransactionCount();
+  let currentNonce = await BSCAccount.getTransactionCount();
+  console.log(`[mintingQueue]==> Current Nonce: [${currentNonce}]`);
+  const tx = await foreignContract.mintTokensOf(owner, {
+    gasPrice: ethers.utils.parseUnits("3", "gwei"),
+    gasLimit: 5500000,
+  });
+
   return tx;
 }
 

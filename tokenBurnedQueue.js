@@ -1,6 +1,7 @@
 const Queue = require("bee-queue");
 const chalk = require("chalk");
 const { ethers } = require("ethers");
+const { NonceManager } = require("@ethersproject/experimental");
 
 const tokensBurning = new Queue("tokensBurned");
 
@@ -11,12 +12,14 @@ const BKCPrivateKey = process.env.PRIVATE_KEY;
 const BKCProvider = new ethers.providers.JsonRpcProvider(BKCMainnetUrl);
 const BKCWallet = new ethers.Wallet(BKCPrivateKey);
 const BKCAccount = BKCWallet.connect(BKCProvider);
+const BKCManager = new NonceManager(BKCWallet);
 
 const BSCMainnetUrl = process.env.RINKEBY;
 const BSCPrivateKey = process.env.PRIVATE_KEY;
 const BSCProvider = new ethers.providers.JsonRpcProvider(BSCMainnetUrl);
 const BSCWallet = new ethers.Wallet(BSCPrivateKey);
 const BSCAccount = BSCWallet.connect(BSCProvider);
+const BSCManager = new NonceManager(BSCAccount);
 
 const homeContract = new ethers.Contract(
   process.env.BRIDGE_HOME_ADDRESS,
@@ -60,12 +63,22 @@ async function checkMintedTokensInForeign(owner, tokenIds) {
 
 async function updateMintedTokensInHome(owner, tokenIds) {
   console.log("[burningQueue]==> update minted token at home");
+  let currentNonce = await BKCAccount.getTransactionCount();
+  console.log(`[burningQueue]==> Current Nonce: [${currentNonce}]`);
   await homeContract.updateMintedTokensOf(owner, tokenIds);
 }
 
 async function burnTokensOf(owner) {
   console.log("[burningQueue]==> burning token called");
-  const tx = await homeContract.burnTokensOf(owner);
+  //wait for 4 nonce to finalize previous transaction before burn
+  //increase transaction count by 1
+  BKCManager.incrementTransactionCount();
+  let currentNonce = await BKCAccount.getTransactionCount();
+  console.log(`[burningQueue]==> Current Nonce: [${currentNonce}]`);
+  const tx = await homeContract.burnTokensOf(owner, {
+    gasPrice: ethers.utils.parseUnits("3", "gwei"),
+    gasLimit: 5500000,
+  });
   return tx;
 }
 
