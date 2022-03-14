@@ -1,13 +1,20 @@
-const { NonceManager } = require("@ethersproject/experimental");
 const Queue = require("bee-queue");
 const chalk = require("chalk");
 const { ethers } = require("ethers");
+const { NonceManager } = require("@ethersproject/experimental");
 
-const tokenTransfer = new Queue("tokenTransferred");
+const tokenTransfering = new Queue("tokenTransferred");
+
 const options = {
-  gasPrice: ethers.utils.parseUnits("3", "gwei"),
+  gasPrice: ethers.utils.parseUnits("20", "gwei"),
   gasLimit: 5500000,
 };
+
+//option 2
+//using getGasPrice from provider and add some more
+
+//option 3
+//try to use increase nonce again
 
 const BKCMainnetUrl = process.env.MUMBAI;
 const BKCPrivateKey = process.env.PRIVATE_KEY;
@@ -49,26 +56,26 @@ const foreignContract = new ethers.Contract(
   BSCAccount
 );
 
-async function checkIfTokensBurnedInHome(owner) {
-  console.log(
-    "[tokensTransferred]==> check if tokens have already burned before transfer to owner"
-  );
-  let currentNonce = await BKCAccount.getTransactionCount();
-  console.log(`[tokenTransferred]==> Current Nonce: [${currentNonce}]`);
-  const result = await homeContract.checkBurnedTokensOf(owner);
-  if (result) {
-    return true;
-  } else {
-    return false;
-  }
-}
+// async function checkIfTokensBurnedInHome(owner) {
+//   console.log(
+//     "[tokensTransferred]==> check if tokens have already burned before transfer to owner"
+//   );
+//   let currentNonce = await BKCAccount.getTransactionCount();
+//   console.log(`[tokenTransferred]==> Current Nonce: [${currentNonce}]`);
+//   const result = await homeContract.checkBurnedTokensOf(owner);
+//   if (result) {
+//     return true;
+//   } else {
+//     return false;
+//   }
+// }
 
 async function transferTokensTo(owner) {
-  console.log("[tokensTransferred]==> transfer token to ", owner);
+  console.log("[tokensTransferingQueue]==> transfer token to ", owner);
   //increse transaction count by 1
-  BSCManager.incrementTransactionCount();
+  // BSCManager.incrementTransactionCount();
   let currentNonce = await BSCAccount.getTransactionCount();
-  console.log(`[tokenTransferred]==> Current Nonce: [${currentNonce}]`);
+  console.log(`[tokenTransferingQueue]==> Current Nonce: [${currentNonce}]`);
   const tx = await foreignContract.transferTokensTo(owner, options);
 
   return tx;
@@ -86,7 +93,7 @@ function reportProgress(job, number, msg) {
   });
 }
 
-tokenTransfer.process(function (job, done) {
+tokenTransfering.process(2, function (job, done) {
   // console.log(job);
   let owner = job.data.address;
   let tokens = job.data.tokenIds;
@@ -116,6 +123,10 @@ tokenTransfer.process(function (job, done) {
         )
       );
       job.reportProgress(100);
+    })
+    .catch((error) => {
+      console.log("[tokensTransferingQueue]=> trasfering failed for", owner);
+      console.error(error);
     })
     .finally(() => {
       console.log("[tokensTransferingQueue]=> done...");

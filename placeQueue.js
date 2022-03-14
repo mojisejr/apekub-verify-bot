@@ -19,7 +19,7 @@ function placeTokensBurnedQueue(order) {
 }
 
 function placeTokensTransferredQueue(order) {
-  return tokenBurnedQueue.createJob(order).retries(5).save();
+  return tokensTransferredQueue.createJob(order).retries(5).save();
 }
 
 tokensMintedQueue.on("succeeded", (job) => {

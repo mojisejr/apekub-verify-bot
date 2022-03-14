@@ -1,7 +1,7 @@
-const { NonceManager } = require("@ethersproject/experimental");
 const Queue = require("bee-queue");
 const chalk = require("chalk");
 const { ethers } = require("ethers");
+const { NonceManager } = require("@ethersproject/experimental");
 
 const tokensMinting = new Queue("tokensMinted");
 const options = {
@@ -71,14 +71,14 @@ async function updateReceivedTokensInForeign(owner, tokenIds) {
   console.log("[mintingQueue]==> update checked at foreign");
   let currentNonce = await BSCAccount.getTransactionCount();
   console.log(`[mintingQueue]==> Current Nonce: [${currentNonce}]`);
-  await foreignContract.updateHomeTransferredTokensOf(owner, tokenIds, options);
+  await foreignContract.updateHomeTransferredTokensOf(owner, tokenIds);
 }
 
 async function mintTokensOf(owner, tokenIds) {
   console.log("[mintingQueue]==> token minting called");
   //wait for 4 nonce to finalize previous transaction before burn
   //increase transaction count by 1
-  BSCManager.incrementTransactionCount();
+  // BSCManager.incrementTransactionCount();
   let currentNonce = await BSCAccount.getTransactionCount();
   console.log(`[mintingQueue]==> Current Nonce: [${currentNonce}]`);
   const tx = await foreignContract.mintTokensOf(owner, options);
@@ -88,11 +88,24 @@ async function mintTokensOf(owner, tokenIds) {
 
 async function handleFailedMinting(owner, tokenIds) {
   console.log("[mintingQueue]==> Reset foreign contract info for", owner);
-  BSCManager.incrementTransactionCount();
-  await foreignContract.resetHomeTransferredInfoOf(owner, tokenIds);
-  BKCManager.incrementTransactionCount();
-  await homeContract.returnTransferredTokensBackTo(owner, tokenIds);
+  // BSCManager.incrementTransactionCount();
+  const resetTx = await foreignContract.resetHomeTransferredInfoOf(
+    owner,
+    tokenIds
+  );
+  const resetHomeReceipt = await resetTx.wait();
+  console.log("[mintingQueue]==> reset: ", resetHomeReceipt);
+
+  // BKCManager.incrementTransactionCount();
+  const returnTx = await homeContract.returnTransferredTokensBackTo(
+    owner,
+    tokenIds
+  );
+  const returnReceipt = await returnTx.wait();
+  console.log("[mintingQueue]==> return: ", returnReceipt);
+
   console.log("[mintingQueue]==> Please repeat all process again.");
+  console.log("[mintingQueue]==> owner address: ", owner);
 }
 
 function reportProgress(job, number, msg) {
@@ -119,8 +132,8 @@ tokensMinting.process(1, function (job, done) {
   reportProgress(job, 10, "[mintingQueue]=> Preparing..")
     .then(async () => {
       //do checking and minting process here
-      const result = await checkReceivedTokensInHome(owner, tokens);
-      if (result) {
+      const haveToken = await checkReceivedTokensInHome(owner, tokens);
+      if (haveToken) {
         await updateReceivedTokensInForeign(owner, tokens);
         return await mintTokensOf(owner, tokens, options);
       } else {

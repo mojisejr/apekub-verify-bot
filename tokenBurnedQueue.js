@@ -48,34 +48,34 @@ const foreignContract = new ethers.Contract(
   BSCAccount
 );
 
-async function checkMintedTokensInForeign(owner, tokenIds) {
-  console.log("[burningQueue]==> check minted token on foreign");
-  let tx = await foreignContract.getTokensToTransferOf(owner);
-  let tokensFromForeign = tx
-    .toString()
-    .split(",")
-    .map((token) => parseInt(token));
+// async function checkMintedTokensInForeign(owner, tokenIds) {
+//   console.log("[burningQueue]==> check minted token on foreign");
+//   let tx = await foreignContract.getTokensToTransferOf(owner);
+//   let tokensFromForeign = tx
+//     .toString()
+//     .split(",")
+//     .map((token) => parseInt(token));
 
-  const result = JSON.stringify(tokensFromForeign) === JSON.stringify(tokenIds);
-  if (!result) {
-    return false;
-  } else {
-    return true;
-  }
-}
+//   const result = JSON.stringify(tokensFromForeign) === JSON.stringify(tokenIds);
+//   if (!result) {
+//     return false;
+//   } else {
+//     return true;
+//   }
+// }
 
 async function updateMintedTokensInHome(owner, tokenIds) {
   console.log("[burningQueue]==> update minted token at home");
   let currentNonce = await BKCAccount.getTransactionCount();
   console.log(`[burningQueue]==> Current Nonce: [${currentNonce}]`);
-  await homeContract.updateMintedTokensOf(owner, tokenIds);
+  await homeContract.updateMintedTokensOf(owner, tokenIds, options);
 }
 
 async function burnTokensOf(owner) {
   console.log("[burningQueue]==> burning token called");
   //wait for 4 nonce to finalize previous transaction before burn
   //increase transaction count by 1
-  BKCManager.incrementTransactionCount();
+  // BKCManager.incrementTransactionCount();
   let currentNonce = await BKCAccount.getTransactionCount();
   console.log(`[burningQueue]==> Current Nonce: [${currentNonce}]`);
   const tx = await homeContract.burnTokensOf(owner, options);
@@ -94,7 +94,7 @@ function reportProgress(job, number, msg) {
   });
 }
 
-tokensBurning.process(function (job, done) {
+tokensBurning.process(3, function (job, done) {
   // console.log(job);
   let owner = job.data.address;
   let tokens = job.data.tokenIds;
@@ -104,11 +104,11 @@ tokensBurning.process(function (job, done) {
 
   reportProgress(job, 10, "[burningQueue]=> Preparing..")
     .then(async () => {
-      const result = await checkMintedTokensInForeign(owner, tokens);
-      if (result) {
-        await updateMintedTokensInHome(owner, tokens);
-        return await burnTokensOf(owner, options);
-      }
+      // const result = await checkMintedTokensInForeign(owner, tokens);
+      // if (result) {
+      await updateMintedTokensInHome(owner, tokens);
+      return await burnTokensOf(owner, options);
+      // }
     })
     .then((tx) => {
       console.log(

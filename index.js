@@ -3,8 +3,8 @@ require("dotenv").config({
 });
 
 require("./tokenMintedQueue");
-require("./tokenBurnedQueue");
 require("./tokenTransferredQueue");
+require("./tokenBurnedQueue");
 
 const ethers = require("ethers");
 const express = require("express");
@@ -44,15 +44,16 @@ let nonceCount = 1;
 
 const foreignContract = new ethers.Contract(
   process.env.BRIDGE_FOREIGN_ADDRESS,
-  ["event TokensMinted(uint256[] _tokenIds, address indexed _owner)"],
+  [
+    "event TokensMinted(uint256[] _tokenIds, address indexed _owner)",
+    "event TokensTransferred(uint256[] _tokenIds, address indexed _owner)",
+  ],
   BSCAccount
 );
 
 const homeContract = new ethers.Contract(
   process.env.BRIDGE_HOME_ADDRESS,
   [
-    "function withdraw(address _receiver, uint256 _amount)",
-    "function updateAndTransferTokensOf(address _owner)",
     "event TokensMinted(uint256[] _tokenIds, address indexed _owner)",
     "event TokensTransferred(uint256[] _tokenIds, address indexed _owner)",
     "event TokensBurned(uint256[] _tokenIds, address indexed _owner)",
@@ -120,7 +121,7 @@ const run = async () => {
       );
   });
 
-  homeContract.on("TokensBurned", async (tx, sender) => {
+  foreignContract.on("TokensTransferred", async (tx, sender) => {
     const tokens = tx
       .toString()
       .split(",")
