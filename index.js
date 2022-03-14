@@ -62,9 +62,7 @@ const homeContract = new ethers.Contract(
 
 const run = async () => {
   homeContract.on("TokensTransferred", async (tx, sender) => {
-    console.log(
-      chalk.yellowBright("1) Processing Transaction TokensTransferred")
-    );
+    console.log(chalk.yellowBright("1) Processing Transaction Token Minting"));
     const tokens = tx
       .toString()
       .split(",")
@@ -95,35 +93,9 @@ const run = async () => {
       .toString()
       .split(",")
       .map((x) => parseInt(x));
-    console.log(chalk.yellowBright("2) Processing Transaction TokensMinted"));
-    console.log("owner: ", sender);
-    console.log("tokens: ", tokens);
-    // foreign update home trasferredTokenOf to reconize the receiving
-
-    let order = {
-      address: sender,
-      tokenIds: tokens,
-    };
-
-    placeTokensBurnedQueue(order)
-      .then((job) =>
-        console.log(
-          chalk.greenBright(
-            `[controller]=> Add TokensBurnedQueue done ${job.id}`
-          )
-        )
-      )
-      .catch((error) =>
-        console.log(`[controller]=> Add TokensBurnedQueue Error ${error}`)
-      );
-  });
-
-  homeContract.on("TokensBurned", async (tx, sender) => {
-    const tokens = tx
-      .toString()
-      .split(",")
-      .map((x) => parseInt(x));
-    console.log(chalk.yellowBright("3) Processing Transaction TokensBurned"));
+    console.log(
+      chalk.yellowBright("2) Processing Transaction Tokens Transfering")
+    );
     console.log("owner: ", sender);
     console.log("tokens: ", tokens);
     // foreign update home trasferredTokenOf to reconize the receiving
@@ -137,14 +109,40 @@ const run = async () => {
       .then((job) =>
         console.log(
           chalk.greenBright(
-            `[controller]=> Add TokensTransferred[to owner] done ${job.id}`
+            `[controller]=> Add TokensTransferredQueue [transfer to owner] done ${job.id}`
           )
         )
       )
       .catch((error) =>
         console.log(
-          `[controller]=> Add TokensTransferred[to owner] Error ${error}`
+          `[controller]=> Add TokensTransferredQueue [transfer to owner] Error ${error}`
         )
+      );
+  });
+
+  homeContract.on("TokensBurned", async (tx, sender) => {
+    const tokens = tx
+      .toString()
+      .split(",")
+      .map((x) => parseInt(x));
+    console.log(chalk.yellowBright("3) Processing Transaction Token Burning"));
+    console.log("owner: ", sender);
+    console.log("tokens: ", tokens);
+    // foreign update home trasferredTokenOf to reconize the receiving
+
+    let order = {
+      address: sender,
+      tokenIds: tokens,
+    };
+
+    placeTokensBurnedQueue(order)
+      .then((job) =>
+        console.log(
+          chalk.greenBright(`[controller]=> Add TokensBurned done ${job.id}`)
+        )
+      )
+      .catch((error) =>
+        console.log(`[controller]=> Add TokensBurned Error ${error}`)
       );
   });
 };

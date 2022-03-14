@@ -1,10 +1,13 @@
 const { NonceManager } = require("@ethersproject/experimental");
 const Queue = require("bee-queue");
 const chalk = require("chalk");
-const { ethers, BigNumber } = require("ethers");
+const { ethers } = require("ethers");
 
 const tokensMinting = new Queue("tokensMinted");
-const options = { gasPrice: 10e18, gasLimit: 5500000, nonce: 0 };
+const options = {
+  gasPrice: ethers.utils.parseUnits("20", "gwei"),
+  gasLimit: 5500000,
+};
 
 const BKCMainnetUrl = process.env.MUMBAI;
 const BKCPrivateKey = process.env.PRIVATE_KEY;
@@ -24,6 +27,7 @@ const homeContract = new ethers.Contract(
   process.env.BRIDGE_HOME_ADDRESS,
   [
     "function getReceivedTokensOf(address _owner) view returns(uint256[] memory)",
+    "function returnTransferredTokensBackTo(address _owner, uint256[] memory _tokenId)",
     "event TokensMinted(uint256[] _tokenIds, address indexed _owner)",
     "event TokensTransferred(uint256[] _tokenIds, address indexed _owner)",
   ],
@@ -35,6 +39,7 @@ const foreignContract = new ethers.Contract(
   [
     "function updateHomeTransferredTokensOf(address _owner, uint256[] _tokenIds)",
     "function mintTokensOf(address _owner) payable",
+    "function resetHomeTransferredInfoOf(address _owner, uint256[] _tokenIds)",
     "event TokensMinted(uint256[] _tokenIds, address indexed _owner)",
     "event TokensTransferred(uint256[] _tokenIds, address indexed _owner)",
   ],
@@ -66,7 +71,7 @@ async function updateReceivedTokensInForeign(owner, tokenIds) {
   console.log("[mintingQueue]==> update checked at foreign");
   let currentNonce = await BSCAccount.getTransactionCount();
   console.log(`[mintingQueue]==> Current Nonce: [${currentNonce}]`);
-  await foreignContract.updateHomeTransferredTokensOf(owner, tokenIds);
+  await foreignContract.updateHomeTransferredTokensOf(owner, tokenIds, options);
 }
 
 async function mintTokensOf(owner, tokenIds) {
@@ -76,12 +81,18 @@ async function mintTokensOf(owner, tokenIds) {
   BSCManager.incrementTransactionCount();
   let currentNonce = await BSCAccount.getTransactionCount();
   console.log(`[mintingQueue]==> Current Nonce: [${currentNonce}]`);
-  const tx = await foreignContract.mintTokensOf(owner, {
-    gasPrice: ethers.utils.parseUnits("3", "gwei"),
-    gasLimit: 5500000,
-  });
+  const tx = await foreignContract.mintTokensOf(owner, options);
 
   return tx;
+}
+
+async function handleFailedMinting(owner, tokenIds) {
+  console.log("[mintingQueue]==> Reset foreign contract info for", owner);
+  BSCManager.incrementTransactionCount();
+  await foreignContract.resetHomeTransferredInfoOf(owner, tokenIds);
+  BKCManager.incrementTransactionCount();
+  await homeContract.returnTransferredTokensBackTo(owner, tokenIds);
+  console.log("[mintingQueue]==> Please repeat all process again.");
 }
 
 function reportProgress(job, number, msg) {
@@ -123,6 +134,11 @@ tokensMinting.process(1, function (job, done) {
         chalk.redBright("[mintingQueue]==> minting tx-hash:", tx.hash)
       );
       job.reportProgress(100);
+    })
+    .catch((error) => {
+      console.log(`[mintingQueue]=> ${error}`);
+      console.log("[MintingQueue]=> Error cannot mint!!");
+      handleFailedMinting(owner, tokens);
     })
     .finally(() => {
       console.log("[mintingQueue]=> done...");

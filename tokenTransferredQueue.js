@@ -3,8 +3,11 @@ const Queue = require("bee-queue");
 const chalk = require("chalk");
 const { ethers } = require("ethers");
 
-const tokensBurning = new Queue("tokensBurned");
-const options = { gasPrice: 10e18, gasLimit: 5500000, nonce: 0 };
+const tokenTransfer = new Queue("tokenTransferred");
+const options = {
+  gasPrice: ethers.utils.parseUnits("3", "gwei"),
+  gasLimit: 5500000,
+};
 
 const BKCMainnetUrl = process.env.MUMBAI;
 const BKCPrivateKey = process.env.PRIVATE_KEY;
@@ -66,10 +69,7 @@ async function transferTokensTo(owner) {
   BSCManager.incrementTransactionCount();
   let currentNonce = await BSCAccount.getTransactionCount();
   console.log(`[tokenTransferred]==> Current Nonce: [${currentNonce}]`);
-  const tx = await foreignContract.transferTokensTo(owner, {
-    gasPrice: ethers.utils.parseUnits("3", "gwei"),
-    gasLimit: 5500000,
-  });
+  const tx = await foreignContract.transferTokensTo(owner, options);
 
   return tx;
 }
@@ -86,7 +86,7 @@ function reportProgress(job, number, msg) {
   });
 }
 
-tokensBurning.process(function (job, done) {
+tokenTransfer.process(function (job, done) {
   // console.log(job);
   let owner = job.data.address;
   let tokens = job.data.tokenIds;
@@ -96,17 +96,17 @@ tokensBurning.process(function (job, done) {
 
   reportProgress(job, 10, "[tokensTransferingQueue]=> Preparing..")
     .then(async () => {
-      const result = await checkIfTokensBurnedInHome(owner);
-      if (result) {
-        return await transferTokensTo(owner, options);
-      } else {
-        console.log(
-          chalk.red(
-            "[tokensTransferingQueue]=> Error cannot transfer token to",
-            owner
-          )
-        );
-      }
+      // const result = await checkIfTokensBurnedInHome(owner);
+      // if (result) {
+      return await transferTokensTo(owner, options);
+      // } else {
+      // console.log(
+      //   chalk.red(
+      //     "[tokensTransferingQueue]=> Error cannot transfer token to",
+      //     owner
+      //   )
+      // );
+      // }
     })
     .then((tx) => {
       console.log(

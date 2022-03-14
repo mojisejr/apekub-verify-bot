@@ -5,7 +5,10 @@ const { NonceManager } = require("@ethersproject/experimental");
 
 const tokensBurning = new Queue("tokensBurned");
 
-const options = { gasPrice: 10e18, gasLimit: 5500000, nonce: 0 };
+const options = {
+  gasPrice: ethers.utils.parseUnits("20", "gwei"),
+  gasLimit: 5500000,
+};
 
 const BKCMainnetUrl = process.env.MUMBAI;
 const BKCPrivateKey = process.env.PRIVATE_KEY;
@@ -75,10 +78,7 @@ async function burnTokensOf(owner) {
   BKCManager.incrementTransactionCount();
   let currentNonce = await BKCAccount.getTransactionCount();
   console.log(`[burningQueue]==> Current Nonce: [${currentNonce}]`);
-  const tx = await homeContract.burnTokensOf(owner, {
-    gasPrice: ethers.utils.parseUnits("3", "gwei"),
-    gasLimit: 5500000,
-  });
+  const tx = await homeContract.burnTokensOf(owner, options);
   return tx;
 }
 
