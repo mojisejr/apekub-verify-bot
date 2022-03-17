@@ -2,18 +2,16 @@ require("dotenv").config({
   path: "config.env",
 });
 
-require("./tokenMintedQueue");
-require("./tokenTransferredQueue");
-require("./tokenBurnedQueue");
+require("./tokenMintingQueue");
+require("./tokenBurningQueue");
 
 const ethers = require("ethers");
 const express = require("express");
 const chalk = require("chalk");
 const http = require("http");
 const {
-  placeTokensMintedQueue,
-  placeTokensBurnedQueue,
-  placeTokensTransferredQueue,
+  placeTokensMintingQueue,
+  placeTokensBurningQueue,
 } = require("./placeQueue");
 
 const app = express();
@@ -46,7 +44,7 @@ const foreignContract = new ethers.Contract(
   process.env.BRIDGE_FOREIGN_ADDRESS,
   [
     "event TokensMinted(uint256[] _tokenIds, address indexed _owner)",
-    "event TokensTransferred(uint256[] _tokenIds, address indexed _owner)",
+    "event TokensClaimed(uint256[] _tokenIds, address indexed _owner)",
   ],
   BSCAccount
 );
@@ -54,20 +52,24 @@ const foreignContract = new ethers.Contract(
 const homeContract = new ethers.Contract(
   process.env.BRIDGE_HOME_ADDRESS,
   [
-    "event TokensMinted(uint256[] _tokenIds, address indexed _owner)",
-    "event TokensTransferred(uint256[] _tokenIds, address indexed _owner)",
+    "event TokensLocked(uint256[] _tokenIds, address indexed _owner)",
     "event TokensBurned(uint256[] _tokenIds, address indexed _owner)",
   ],
   BKCAccount
 );
 
 const run = async () => {
-  homeContract.on("TokensTransferred", async (tx, sender) => {
-    console.log(chalk.yellowBright("1) Processing Transaction Token Minting"));
+  homeContract.on("TokensLocked", async (tx, sender) => {
+    console.log(
+      chalk.yellowBright(
+        "1) [Home]: Tokens are now locked, processing minting process."
+      )
+    );
     const tokens = tx
       .toString()
       .split(",")
       .map((x) => parseInt(x));
+
     console.log("owner: ", sender);
     console.log("tokens: ", tokens);
 
@@ -76,16 +78,16 @@ const run = async () => {
       tokenIds: tokens,
     };
 
-    placeTokensMintedQueue(order)
+    placeTokensMintingQueue(order)
       .then((job) =>
         console.log(
           chalk.greenBright(
-            `[controller]=> Add tokenMintedQueue done ${job.id}`
+            `[controller]=> Add tokenMintingQueue done ${job.id}`
           )
         )
       )
       .catch((error) =>
-        console.log(`[controller]=> Add TokenMintedQueue Error ${error}`)
+        console.log(`[controller]=> Add TokenMintingQueue error ${error}`)
       );
   });
 
@@ -95,7 +97,26 @@ const run = async () => {
       .split(",")
       .map((x) => parseInt(x));
     console.log(
-      chalk.yellowBright("2) Processing Transaction Tokens Transfering")
+      chalk.yellowBright(
+        "2) [Foreign]: all tokens have been minted, ready to claim now"
+      )
+    );
+    console.log("owner: ", sender);
+    console.log("tokens: ", tokens);
+
+    console.log("done...");
+    console.log("========================\n");
+  });
+
+  foreignContract.on("TokensClaimed", async (tx, sender) => {
+    const tokens = tx
+      .toString()
+      .split(",")
+      .map((x) => parseInt(x));
+    console.log(
+      chalk.yellowBright(
+        "3)[Foreign]: owner has already cliamed their tokens, Processing burning claimed token process."
+      )
     );
     console.log("owner: ", sender);
     console.log("tokens: ", tokens);
@@ -106,47 +127,34 @@ const run = async () => {
       tokenIds: tokens,
     };
 
-    placeTokensTransferredQueue(order)
+    placeTokensBurningQueue(order)
       .then((job) =>
         console.log(
-          chalk.greenBright(
-            `[controller]=> Add TokensTransferredQueue [transfer to owner] done ${job.id}`
-          )
+          chalk.greenBright(`[controller]=> Add TokensBurning done ${job.id}`)
         )
       )
       .catch((error) =>
-        console.log(
-          `[controller]=> Add TokensTransferredQueue [transfer to owner] Error ${error}`
-        )
-      );
-  });
-
-  foreignContract.on("TokensTransferred", async (tx, sender) => {
-    const tokens = tx
-      .toString()
-      .split(",")
-      .map((x) => parseInt(x));
-    console.log(chalk.yellowBright("3) Processing Transaction Token Burning"));
-    console.log("owner: ", sender);
-    console.log("tokens: ", tokens);
-    // foreign update home trasferredTokenOf to reconize the receiving
-
-    let order = {
-      address: sender,
-      tokenIds: tokens,
-    };
-
-    placeTokensBurnedQueue(order)
-      .then((job) =>
-        console.log(
-          chalk.greenBright(`[controller]=> Add TokensBurned done ${job.id}`)
-        )
-      )
-      .catch((error) =>
-        console.log(`[controller]=> Add TokensBurned Error ${error}`)
+        console.log(`[controller]=> Add TokensBurning Error ${error}`)
       );
   });
 };
+
+homeContract.on("TokensBurned", async (tx, sender) => {
+  const tokens = tx
+    .toString()
+    .split(",")
+    .map((x) => parseInt(x));
+  console.log(
+    chalk.yellowBright(
+      `4)[Home]: all tokens of ${sender} burned successfully. bridging process done.`
+    )
+  );
+  console.log("owner: ", sender);
+  console.log("tokens: ", tokens);
+
+  console.log("done...");
+  console.log("========================\n");
+});
 
 run();
 

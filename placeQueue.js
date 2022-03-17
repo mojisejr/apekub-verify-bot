@@ -1,41 +1,28 @@
 const Queue = require("bee-queue");
 
-const tokensMintedQueue = new Queue("tokensMinted", {
+const tokensMintingQueue = new Queue("TokenMinting", {
   isWorker: false,
 });
 
-const tokenBurnedQueue = new Queue("tokensBurned", { isWorker: false });
+const tokenBurningQueue = new Queue("TokenBurning", { isWorker: false });
 
-const tokensTransferredQueue = new Queue("tokenTransferred", {
-  isWorker: false,
-});
-
-function placeTokensMintedQueue(order) {
-  return tokensMintedQueue.createJob(order).retries(5).save();
+function placeTokensMintingQueue(order) {
+  return tokensMintingQueue.createJob(order).retries(5).save();
 }
 
-function placeTokensBurnedQueue(order) {
-  return tokenBurnedQueue.createJob(order).retries(5).save();
+function placeTokensBurningQueue(order) {
+  return tokenBurningQueue.createJob(order).retries(5).save();
 }
 
-function placeTokensTransferredQueue(order) {
-  return tokensTransferredQueue.createJob(order).retries(5).save();
-}
-
-tokensMintedQueue.on("succeeded", (job) => {
+tokensMintingQueue.on("succeeded", (job) => {
   console.log(`🧾 ${job.data} ready 😋`);
 });
 
-tokenBurnedQueue.on("succeeded", (job) => {
-  console.log(`🧾 ${job.data} ready 😋`);
-});
-
-tokensTransferredQueue.on("succeeded", (job) => {
+tokenBurningQueue.on("succeeded", (job) => {
   console.log(`🧾 ${job.data} ready 😋`);
 });
 
 module.exports = {
-  placeTokensMintedQueue: placeTokensMintedQueue,
-  placeTokensBurnedQueue: placeTokensBurnedQueue,
-  placeTokensTransferredQueue: placeTokensTransferredQueue,
+  placeTokensMintingQueue: placeTokensMintingQueue,
+  placeTokensBurningQueue: placeTokensBurningQueue,
 };
