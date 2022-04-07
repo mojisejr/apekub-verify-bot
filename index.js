@@ -2,8 +2,11 @@ require("dotenv").config({
   path: "config.env",
 });
 
+const contract = require("../addresses.json");
+
 require("./tokenMintingQueue");
 require("./tokenBurningQueue");
+require("./tokenClaimedQueue");
 
 const ethers = require("ethers");
 const express = require("express");
@@ -11,7 +14,8 @@ const chalk = require("chalk");
 const http = require("http");
 const {
   placeTokensMintingQueue,
-  placeTokensBurningQueue,
+  placeTokensClaimedQueue,
+  // placeTokensBurningQueue,
 } = require("./placeQueue");
 
 const app = express();
@@ -41,7 +45,7 @@ const BSCAccount = BSCWallet.connect(BSCProvider);
 let nonceCount = 1;
 
 const foreignContract = new ethers.Contract(
-  process.env.BRIDGE_FOREIGN_ADDRESS,
+  contract.foreign_bridge,
   [
     "event TokensMinted(uint256[] _tokenIds, address indexed _owner)",
     "event TokensClaimed(uint256[] _tokenIds, address indexed _owner)",
@@ -50,7 +54,7 @@ const foreignContract = new ethers.Contract(
 );
 
 const homeContract = new ethers.Contract(
-  process.env.BRIDGE_HOME_ADDRESS,
+  contract.home_bridge,
   [
     "event TokensLocked(uint256[] _tokenIds, address indexed _owner)",
     "event TokensBurned(uint256[] _tokenIds, address indexed _owner)",
@@ -115,7 +119,7 @@ const run = async () => {
       .map((x) => parseInt(x));
     console.log(
       chalk.yellowBright(
-        "3)[Foreign]: owner has already cliamed their tokens, Processing burning claimed token process."
+        "3)[Foreign]: owner has already cliamed their tokens, Processing update claimed token process."
       )
     );
     console.log("owner: ", sender);
@@ -127,34 +131,34 @@ const run = async () => {
       tokenIds: tokens,
     };
 
-    placeTokensBurningQueue(order)
+    placeTokensClaimedQueue(order)
       .then((job) =>
         console.log(
-          chalk.greenBright(`[controller]=> Add TokensBurning done ${job.id}`)
+          chalk.greenBright(`[controller]=> Add TokenClaimed done ${job.id}`)
         )
       )
       .catch((error) =>
-        console.log(`[controller]=> Add TokensBurning Error ${error}`)
+        console.log(`[controller]=> Add TokenClaimed Error ${error}`)
       );
   });
 };
 
-homeContract.on("TokensBurned", async (tx, sender) => {
-  const tokens = tx
-    .toString()
-    .split(",")
-    .map((x) => parseInt(x));
-  console.log(
-    chalk.yellowBright(
-      `4)[Home]: all tokens of ${sender} burned successfully. bridging process done.`
-    )
-  );
-  console.log("owner: ", sender);
-  console.log("tokens: ", tokens);
+// homeContract.on("TokensBurned", async (tx, sender) => {
+//   const tokens = tx
+//     .toString()
+//     .split(",")
+//     .map((x) => parseInt(x));
+//   console.log(
+//     chalk.yellowBright(
+//       `4)[Home]: all tokens of ${sender} burned successfully. bridging process done.`
+//     )
+//   );
+//   console.log("owner: ", sender);
+//   console.log("tokens: ", tokens);
 
-  console.log("done...");
-  console.log("========================\n");
-});
+//   console.log("done...");
+//   console.log("========================\n");
+// });
 
 run();
 

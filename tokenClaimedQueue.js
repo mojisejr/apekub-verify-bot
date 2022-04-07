@@ -1,14 +1,9 @@
-/**
- * since no need to burn token after get claimed at the foreign
- * this queue is get ignore but left it like this in case of needed
- */
 const Queue = require("bee-queue");
 const chalk = require("chalk");
 const { ethers } = require("ethers");
-
-const tokensBurning = new Queue("TokenBurning");
-
 const contract = require("../addresses.json");
+
+const tokensClaimed = new Queue("TokenClaimed");
 
 const options = {
   gasPrice: ethers.utils.parseUnits("20", "gwei"),
@@ -26,18 +21,18 @@ const homeContract = new ethers.Contract(
   [
     "function getLockedTokensOf(address _owner) view returns(uint256[] memory)",
     "function updateMintedTokensOf(address _owner, uint256[] calldata _tokenIds)",
-    "function burnTokensOf(address _owner)",
+    "function updateClaimedTokensOf(address _owner, uint256[] calldata _tokenIds)",
     "event TokensMinted(uint256[] _tokenIds, address indexed _owner)",
     "event TokensLocked(uint256[] _tokenIds, address indexed _owner)",
   ],
   BKCAccount
 );
 
-async function burnTokensOf(owner) {
-  console.log("[burningQueue]==> burning token called");
+async function updateClaimedState(owner, tokenIds) {
+  console.log("[claimedQueue]==> claimed status updating called");
   let currentNonce = await BKCAccount.getTransactionCount();
-  console.log(`[burningQueue]==> Current Nonce: [${currentNonce}]`);
-  const tx = await homeContract.burnTokensOf(owner, options);
+  console.log(`[claimedQueue]==> Current Nonce: [${currentNonce}]`);
+  const tx = await homeContract.updateClaimedTokensOf(owner, tokenIds, options);
   return tx;
 }
 
@@ -53,32 +48,36 @@ function reportProgress(job, number, msg) {
   });
 }
 
-tokensBurning.process(function (job, done) {
+tokensClaimed.process(function (job, done) {
   let owner = job.data.address;
   let tokens = job.data.tokenIds;
 
-  console.log(`[burningQueue]=> - owner : ${owner}`);
-  console.log("[burningQueue]=> - tokens : ", tokens);
+  console.log(`[claimedQueue]=> - owner : ${owner}`);
+  console.log("[claimedQueue]=> - tokens : ", tokens);
 
-  reportProgress(job, 10, "[burningQueue]=> Preparing..")
+  reportProgress(job, 10, "[claimedQueue]=> Preparing..")
     .then(async () => {
-      return await burnTokensOf(owner, options);
+      return await updateClaimedState(owner, tokens);
     })
-    .then((tx) => {
+    .then(async (tx) => {
+      await tx.wait();
       console.log(
-        chalk.redBright("[burningQueue]==> burning tx-hash:", tx.hash)
+        chalk.redBright(
+          "[claimedQueue]==> claimed status updated: tx-hash:",
+          tx.hash
+        )
       );
       job.reportProgress(100);
     })
     .catch((error) => {
       console.log(
         chalk.redBright(
-          "[burningQueue]==> burning failed, may be using manual method"
+          "[claimedQueue]==> claimed status updating failed, may be using manual method"
         )
       );
     })
     .finally(() => {
-      console.log("[burningQueue]=> done...");
+      console.log("[claimedQueue]=> done...");
       console.log("========================\n");
       done();
     });

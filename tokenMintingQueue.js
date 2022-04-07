@@ -1,6 +1,7 @@
 const Queue = require("bee-queue");
 const chalk = require("chalk");
 const { ethers } = require("ethers");
+const contract = require("../addresses.json");
 
 const tokensMinting = new Queue("TokenMinting");
 const options = {
@@ -21,7 +22,7 @@ const BSCWallet = new ethers.Wallet(BSCPrivateKey);
 const BSCAccount = BSCWallet.connect(BSCProvider);
 
 const homeContract = new ethers.Contract(
-  process.env.BRIDGE_HOME_ADDRESS,
+  contract.home_bridge,
   [
     "function getLockedTokensOf(address _owner) view returns(uint256[] memory)",
     "function returnLockedTokensBackTo(address _owner, uint256[] memory _tokenId)",
@@ -33,7 +34,7 @@ const homeContract = new ethers.Contract(
 );
 
 const foreignContract = new ethers.Contract(
-  process.env.BRIDGE_FOREIGN_ADDRESS,
+  contract.foreign_bridge,
   [
     "function updateLockedTokensOf(address _owner, uint256[] _tokenIds)",
     "function mintTokensOf(address _owner) payable",
@@ -143,6 +144,7 @@ tokensMinting.process(1, function (job, done) {
       }
     })
     .then(async (tx) => {
+      await tx.wait();
       console.log(
         chalk.redBright("[mintingQueue]==> minting tx-hash:", tx.hash)
       );
