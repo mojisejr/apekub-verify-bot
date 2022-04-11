@@ -2,6 +2,21 @@ require("dotenv").config({
   path: "config.env",
 });
 
+module.exports = STATUS = {
+  locked: 0,
+  lock_error: 000,
+  minting_queue_added: 1,
+  minting_queue_error: 111,
+  minted: 2,
+  mint_error: 222,
+  claimed: 3,
+  cliam_error: 333,
+};
+
+const sequelize = require("./database/database");
+const { createNewJob, updateJobState } = require("./database/database.service");
+sequelize.sync().then(() => console.log("job-db is now ready"));
+
 const contract = require("../addresses.json");
 
 require("./tokenMintingQueue");
@@ -83,34 +98,40 @@ const run = async () => {
     };
 
     placeTokensMintingQueue(order)
-      .then((job) =>
+      .then((job) => {
+        createNewJob({
+          jobId: job.id,
+          owner: order.address,
+          tokenIds: order.tokenIds,
+          status: STATUS.locked,
+        });
         console.log(
           chalk.greenBright(
             `[controller]=> Add tokenMintingQueue done ${job.id}`
           )
-        )
-      )
+        );
+      })
       .catch((error) =>
         console.log(`[controller]=> Add TokenMintingQueue error ${error}`)
       );
   });
 
-  foreignContract.on("TokensMinted", async (tx, sender) => {
-    const tokens = tx
-      .toString()
-      .split(",")
-      .map((x) => parseInt(x));
-    console.log(
-      chalk.yellowBright(
-        "2) [Foreign]: all tokens have been minted, ready to claim now"
-      )
-    );
-    console.log("owner: ", sender);
-    console.log("tokens: ", tokens);
+  // foreignContract.on("TokensMinted", async (tx, sender) => {
+  //   const tokens = tx
+  //     .toString()
+  //     .split(",")
+  //     .map((x) => parseInt(x));
+  //   console.log(
+  //     chalk.yellowBright(
+  //       "2) [Foreign]: all tokens have been minted, ready to claim now"
+  //     )
+  //   );
+  //   console.log("owner: ", sender);
+  //   console.log("tokens: ", tokens);
 
-    console.log("done...");
-    console.log("========================\n");
-  });
+  //   console.log("done...");
+  //   console.log("========================\n");
+  // });
 
   foreignContract.on("TokensClaimed", async (tx, sender) => {
     const tokens = tx
@@ -132,11 +153,18 @@ const run = async () => {
     };
 
     placeTokensClaimedQueue(order)
-      .then((job) =>
+      .then((job) => {
+        createNewJob({
+          jobId: job.id,
+          owner: order.address,
+          tokenIds: order.tokenIds,
+          status: STATUS.claimed,
+        });
         console.log(
           chalk.greenBright(`[controller]=> Add TokenClaimed done ${job.id}`)
-        )
-      )
+        );
+      })
+
       .catch((error) =>
         console.log(`[controller]=> Add TokenClaimed Error ${error}`)
       );

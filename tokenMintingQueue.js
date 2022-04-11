@@ -3,7 +3,11 @@ const chalk = require("chalk");
 const { ethers } = require("ethers");
 const contract = require("../addresses.json");
 
+const { updateJobState } = require("./database/database.service");
+const STATUS = require("./index");
+
 const tokensMinting = new Queue("TokenMinting");
+
 const options = {
   gasPrice: ethers.utils.parseUnits("20", "gwei"),
   gasLimit: 5500000,
@@ -145,6 +149,7 @@ tokensMinting.process(1, function (job, done) {
     })
     .then(async (tx) => {
       await tx.wait();
+      updateJobState({ jobId: job.id, status: STATUS.minted });
       console.log(
         chalk.redBright("[mintingQueue]==> minting tx-hash:", tx.hash)
       );
@@ -153,6 +158,7 @@ tokensMinting.process(1, function (job, done) {
       job.reportProgress(100);
     })
     .catch((error) => {
+      updateJobState({ jobId: job.id, status: STATUS.mint_error });
       console.log(`[mintingQueue]=> ${error}`);
       console.log(
         "[MintingQueue]=> error cannot mint!!, something went wrong with minting process."

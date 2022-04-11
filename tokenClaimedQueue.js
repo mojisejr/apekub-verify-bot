@@ -2,6 +2,8 @@ const Queue = require("bee-queue");
 const chalk = require("chalk");
 const { ethers } = require("ethers");
 const contract = require("../addresses.json");
+const STATUS = require("./index");
+const { updateJobState } = require("./database/database.service");
 
 const tokensClaimed = new Queue("TokenClaimed");
 
@@ -48,7 +50,7 @@ function reportProgress(job, number, msg) {
   });
 }
 
-tokensClaimed.process(function (job, done) {
+tokensClaimed.process(1, function (job, done) {
   let owner = job.data.address;
   let tokens = job.data.tokenIds;
 
@@ -61,6 +63,7 @@ tokensClaimed.process(function (job, done) {
     })
     .then(async (tx) => {
       await tx.wait();
+      updateJobState({ jobId: job.id, status: STATUS.claimed });
       console.log(
         chalk.redBright(
           "[claimedQueue]==> claimed status updated: tx-hash:",

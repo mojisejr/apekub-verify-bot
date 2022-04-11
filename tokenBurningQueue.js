@@ -10,6 +10,9 @@ const tokensBurning = new Queue("TokenBurning");
 
 const contract = require("../addresses.json");
 
+const { updateJobState } = require("./database/database.service");
+const STATUS = require("./index");
+
 const options = {
   gasPrice: ethers.utils.parseUnits("20", "gwei"),
   gasLimit: 5500000,
