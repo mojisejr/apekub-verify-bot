@@ -118,7 +118,7 @@ async function sendListedToDiscord(object, bot) {
   const embed = createPunkkubEmbedForListed(
     `${jsonObj.data.name} listed @${object.price} KUB`,
     jsonObj.data.image,
-    `listedAt: ${object.createdDate} | ${object.createdTime}`
+    `listedAt: ${object.soldDate} | ${object.soldTime}`
   );
 
   const channel = bot.channels.cache.get(channelId);
