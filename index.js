@@ -2,36 +2,19 @@ require("dotenv").config({
   path: "config.env",
 });
 
-module.exports = STATUS = {
-  locked: 0,
-  lock_error: 000,
-  minting_queue_added: 1,
-  minting_queue_error: 111,
-  minted: 2,
-  mint_error: 222,
-  claimed: 3,
-  cliam_error: 333,
-};
-
-const sequelize = require("./database/database");
-const { createNewJob, updateJobState } = require("./database/database.service");
-sequelize.sync().then(() => console.log("job-db is now ready"));
-
-const contract = require("../addresses.json");
-
-require("./tokenMintingQueue");
-require("./tokenBurningQueue");
-require("./tokenClaimedQueue");
+const PORT = 1234;
+const channelId = "965495842557546526";
 
 const ethers = require("ethers");
 const express = require("express");
 const chalk = require("chalk");
 const http = require("http");
+const axios = require("axios");
 const {
-  placeTokensMintingQueue,
-  placeTokensClaimedQueue,
-  // placeTokensBurningQueue,
-} = require("./placeQueue");
+  bot,
+  createPunkkubEmbedForListed,
+  createPunkkubEmbedForSold,
+} = require("./discord.bot");
 
 const app = express();
 app.use(express.json());
@@ -41,152 +24,80 @@ app.use(
   })
 );
 
-const PORT = 1234;
-
-const options = { gasPrice: 10e18, gasLimit: 5500000, nonce: 0 };
-
-const BKCMainnetUrl = process.env.MUMBAI;
-const BKCPrivateKey = process.env.PRIVATE_KEY;
+const BKCMainnetUrl = process.env.bitkubMainnet;
 const BKCProvider = new ethers.providers.JsonRpcProvider(BKCMainnetUrl);
-const BKCWallet = new ethers.Wallet(BKCPrivateKey);
-const BKCAccount = BKCWallet.connect(BKCProvider);
 
-const BSCMainnetUrl = process.env.RINKEBY;
-const BSCPrivateKey = process.env.PRIVATE_KEY;
-const BSCProvider = new ethers.providers.JsonRpcProvider(BSCMainnetUrl);
-const BSCWallet = new ethers.Wallet(BSCPrivateKey);
-const BSCAccount = BSCWallet.connect(BSCProvider);
-
-let nonceCount = 1;
-
-const foreignContract = new ethers.Contract(
-  contract.foreign_bridge,
+const megalandMarketPlace = new ethers.Contract(
+  process.env.megalandMarketPlace,
   [
-    "event TokensMinted(uint256[] _tokenIds, address indexed _owner)",
-    "event TokensClaimed(uint256[] _tokenIds, address indexed _owner)",
+    "event ListingCreated(address indexed seller, address indexed nftContract, uint256 indexed tokenId, uint256 price, uint256 createdAt, uint256 listingId)",
+    "event ItemSold(address indexed buyer, address indexed nftContract, uint256 indexed tokenId, address seller, uint256 soldAt, uint256 listingId)",
+    "function idToListing(uint256) view returns(uint256 listingId, address nftContract, uint256 tokenId, address exchangeToken, uint256 price, address seller, address buyer, uint256 createdAt, uint256 withdrawAt, uint256 soldAt, bool isKAP1155)",
   ],
-  BSCAccount
+  BKCProvider
 );
 
-const homeContract = new ethers.Contract(
-  contract.home_bridge,
-  [
-    "event TokensLocked(uint256[] _tokenIds, address indexed _owner)",
-    "event TokensBurned(uint256[] _tokenIds, address indexed _owner)",
-  ],
-  BKCAccount
+const punkkub = new ethers.Contract(
+  process.env.punkkub,
+  ["function tokenURI(uint256 _tokenId) view returns(string memory)"],
+  BKCProvider
 );
 
 const run = async () => {
-  homeContract.on("TokensLocked", async (tx, sender) => {
-    console.log(
-      chalk.yellowBright(
-        "1) [Home]: Tokens are now locked, processing minting process."
-      )
-    );
-    const tokens = tx
-      .toString()
-      .split(",")
-      .map((x) => parseInt(x));
+  megalandMarketPlace.on(
+    "ListingCreated",
+    async (seller, nftContract, tokenId, price, createdAt) => {
+      if (nftContract === process.env.punkkub) {
+        console.log(chalk.yellowBright("[MarketPlace]: token listed."));
+        const object = {
+          seller,
+          nftContract,
+          tokenId: tokenId.toString(),
+          price: ethers.utils.formatEther(price.toString()).toString(),
+          createdDate: new Date(
+            createdAt.toString() * 1000
+          ).toLocaleDateString(),
+          createdTime: new Date(
+            parseInt(createdAt.toString()) * 1000
+          ).toLocaleTimeString(),
+        };
 
-    console.log("owner: ", sender);
-    console.log("tokens: ", tokens);
-
-    let order = {
-      address: sender,
-      tokenIds: tokens,
-    };
-
-    placeTokensMintingQueue(order)
-      .then((job) => {
-        createNewJob({
-          jobId: job.id,
-          owner: order.address,
-          tokenIds: order.tokenIds,
-          status: STATUS.locked,
-        });
-        console.log(
-          chalk.greenBright(
-            `[controller]=> Add tokenMintingQueue done ${job.id}`
-          )
-        );
-      })
-      .catch((error) =>
-        console.log(`[controller]=> Add TokenMintingQueue error ${error}`)
-      );
-  });
-
-  // foreignContract.on("TokensMinted", async (tx, sender) => {
-  //   const tokens = tx
-  //     .toString()
-  //     .split(",")
-  //     .map((x) => parseInt(x));
-  //   console.log(
-  //     chalk.yellowBright(
-  //       "2) [Foreign]: all tokens have been minted, ready to claim now"
-  //     )
-  //   );
-  //   console.log("owner: ", sender);
-  //   console.log("tokens: ", tokens);
-
-  //   console.log("done...");
-  //   console.log("========================\n");
-  // });
-
-  foreignContract.on("TokensClaimed", async (tx, sender) => {
-    const tokens = tx
-      .toString()
-      .split(",")
-      .map((x) => parseInt(x));
-    console.log(
-      chalk.yellowBright(
-        "3)[Foreign]: owner has already cliamed their tokens, Processing update claimed token process."
-      )
-    );
-    console.log("owner: ", sender);
-    console.log("tokens: ", tokens);
-    // foreign update home trasferredTokenOf to reconize the receiving
-
-    let order = {
-      address: sender,
-      tokenIds: tokens,
-    };
-
-    placeTokensClaimedQueue(order)
-      .then((job) => {
-        createNewJob({
-          jobId: job.id,
-          owner: order.address,
-          tokenIds: order.tokenIds,
-          status: STATUS.claimed,
-        });
-        console.log(
-          chalk.greenBright(`[controller]=> Add TokenClaimed done ${job.id}`)
-        );
-      })
-
-      .catch((error) =>
-        console.log(`[controller]=> Add TokenClaimed Error ${error}`)
-      );
-  });
+        console.log("KPUNK Listing detail: ", object);
+        await sendListedToDiscord(object, bot);
+      }
+    }
+  );
 };
 
-// homeContract.on("TokensBurned", async (tx, sender) => {
-//   const tokens = tx
-//     .toString()
-//     .split(",")
-//     .map((x) => parseInt(x));
-//   console.log(
-//     chalk.yellowBright(
-//       `4)[Home]: all tokens of ${sender} burned successfully. bridging process done.`
-//     )
-//   );
-//   console.log("owner: ", sender);
-//   console.log("tokens: ", tokens);
+megalandMarketPlace.on(
+  "ItemSold",
+  async (buyer, nftContract, tokenId, seller, soldAt, listingId) => {
+    if (nftContract === process.env.punkkub) {
+      console.log(chalk.bgGreenBright("[MarketPlace]: token sold."));
+      const { price } = await megalandMarketPlace.idToListing(
+        listingId.toString()
+      );
 
-//   console.log("done...");
-//   console.log("========================\n");
-// });
+      const object = {
+        listingId: listingId.toString(),
+        buyer,
+        nftContract,
+        tokenId: tokenId.toString(),
+        price: ethers.utils.formatEther(price.toString()).toString(),
+        soldDate: new Date(
+          parseInt(soldAt.toString()) * 1000
+        ).toLocaleDateString(),
+        soldTime: new Date(
+          parseInt(soldAt.toString()) * 1000
+        ).toLocaleTimeString(),
+      };
+
+      console.log("KPUNK selling detail: ", object);
+
+      await sendSoldToDiscord(object, bot);
+    }
+  }
+);
 
 run();
 
@@ -194,8 +105,44 @@ const server = http.createServer(app);
 server.listen(PORT, () => {
   console.log(
     chalk.blueBright(
-      "==== nft Bridge is now live ====",
+      "==== megaland - market tracker is now live ====",
       new Date().toDateString()
     )
   );
 });
+
+async function sendListedToDiscord(object, bot) {
+  const tokenURI = await punkkub.tokenURI(object.tokenId);
+  const jsonObj = await axios.get(tokenURI);
+
+  const embed = createPunkkubEmbedForListed(
+    `${jsonObj.data.name} listed @${object.price} KUB`,
+    jsonObj.data.image,
+    `listedAt: ${object.createdDate} | ${object.createdTime}`
+  );
+
+  const channel = bot.channels.cache.get(channelId);
+  if (channel) {
+    channel.send({
+      embeds: [embed],
+    });
+  }
+}
+
+async function sendSoldToDiscord(object, bot) {
+  const tokenURI = await punkkub.tokenURI(object.tokenId);
+  const jsonObj = await axios.get(tokenURI);
+
+  const embed = createPunkkubEmbedForSold(
+    `${jsonObj.data.name} Sold @${object.price} KUB`,
+    jsonObj.data.image,
+    `SoldAt: ${object.createdDate} | ${object.createdTime}`
+  );
+
+  const channel = bot.channels.cache.get(channelId);
+  if (channel) {
+    channel.send({
+      embeds: [embed],
+    });
+  }
+}
