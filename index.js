@@ -24,6 +24,12 @@ app.use(
   })
 );
 
+app.get("/alive", (req, res) => {
+  res.status(200).json({
+    result: "punk!",
+  });
+});
+
 const BKCMainnetUrl = process.env.bitkubMainnet;
 const BKCProvider = new ethers.providers.JsonRpcProvider(BKCMainnetUrl);
 
@@ -100,6 +106,7 @@ megalandMarketPlace.on(
 );
 
 run();
+startKeepAlive();
 
 const server = http.createServer(app);
 server.listen(PORT, () => {
@@ -118,7 +125,7 @@ async function sendListedToDiscord(object, bot) {
   const embed = createPunkkubEmbedForListed(
     `${jsonObj.data.name} listed @${object.price} KUB`,
     jsonObj.data.image,
-    `listedAt: ${object.soldDate} | ${object.soldTime}`
+    `listedAt: ${object.createdDate} | ${object.createdTime}`
   );
 
   const channel = bot.channels.cache.get(channelId);
@@ -136,7 +143,7 @@ async function sendSoldToDiscord(object, bot) {
   const embed = createPunkkubEmbedForSold(
     `${jsonObj.data.name} Sold @${object.price} KUB`,
     jsonObj.data.image,
-    `SoldAt: ${object.createdDate} | ${object.createdTime}`
+    `SoldAt: ${object.soldDate} | ${object.soldTime}`
   );
 
   const channel = bot.channels.cache.get(channelId);
@@ -145,4 +152,22 @@ async function sendSoldToDiscord(object, bot) {
       embeds: [embed],
     });
   }
+}
+
+function startKeepAlive() {
+  setInterval(function () {
+    let options = {
+      host: "https://punkkub-discord-bot.herokuapp.com",
+      port: 80,
+      path: "/alive",
+    };
+    http.get(options, function (res) {
+      res.on("data", function (chunk) {
+        console.log("punk! the punk!");
+      });
+      res.on("error", function (error) {
+        console.log(error);
+      });
+    });
+  }, 30 * 60 * 1000);
 }
