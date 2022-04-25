@@ -3,8 +3,8 @@ require("dotenv").config({
 });
 
 const PORT = process.env.PORT || 1234;
-// const channelId = "965495842557546526";
-const channelId = "965474646499663954";
+const channelId = "965495842557546526";
+// const channelId = "965474646499663954";
 
 const ethers = require("ethers");
 const express = require("express");
