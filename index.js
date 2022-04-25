@@ -3,13 +3,17 @@ require("dotenv").config({
 });
 
 const PORT = process.env.PORT || 1234;
-const channelId = "965495842557546526";
+// const channelId = "965495842557546526";
+const channelId = "965474646499663954";
 
 const ethers = require("ethers");
 const express = require("express");
 const chalk = require("chalk");
 const http = require("http");
 const axios = require("axios");
+
+const { getFormattedPrice } = require("./helper/priceFormatter");
+
 const {
   bot,
   createPunkkubEmbedForListed,
@@ -52,20 +56,28 @@ const punkkub = new ethers.Contract(
 const run = async () => {
   megalandMarketPlace.on(
     "ListingCreated",
-    async (seller, nftContract, tokenId, price, createdAt) => {
+    async (seller, nftContract, tokenId, price, createdAt, listingId) => {
       if (nftContract === process.env.punkkub) {
         console.log(chalk.yellowBright("[MarketPlace]: token listed."));
+
+        const { price, exchangeToken } = await megalandMarketPlace.idToListing(
+          listingId.toString()
+        );
+
         const object = {
           seller,
           nftContract,
           tokenId: tokenId.toString(),
-          price: ethers.utils.formatEther(price.toString()).toString(),
-          createdDate: new Date(
-            createdAt.toString() * 1000
-          ).toLocaleDateString(),
+          price: getFormattedPrice(
+            ethers.utils.formatEther(price.toString()).toString(),
+            exchangeToken
+          ),
+          createdDate: new Date(createdAt.toString() * 1000).toLocaleDateString(
+            "th-TH"
+          ),
           createdTime: new Date(
             parseInt(createdAt.toString()) * 1000
-          ).toLocaleTimeString(),
+          ).toLocaleTimeString("th-TH"),
         };
 
         console.log("KPUNK Listing detail: ", object);
@@ -80,7 +92,7 @@ megalandMarketPlace.on(
   async (buyer, nftContract, tokenId, seller, soldAt, listingId) => {
     if (nftContract === process.env.punkkub) {
       console.log(chalk.bgGreenBright("[MarketPlace]: token sold."));
-      const { price } = await megalandMarketPlace.idToListing(
+      const { price, exchangeToken } = await megalandMarketPlace.idToListing(
         listingId.toString()
       );
 
@@ -89,13 +101,16 @@ megalandMarketPlace.on(
         buyer,
         nftContract,
         tokenId: tokenId.toString(),
-        price: ethers.utils.formatEther(price.toString()).toString(),
+        price: getFormattedPrice(
+          ethers.utils.formatEther(price.toString()).toString(),
+          exchangeToken
+        ),
         soldDate: new Date(
           parseInt(soldAt.toString()) * 1000
-        ).toLocaleDateString(),
+        ).toLocaleDateString("th-TH"),
         soldTime: new Date(
           parseInt(soldAt.toString()) * 1000
-        ).toLocaleTimeString(),
+        ).toLocaleTimeString("th-TH"),
       };
 
       console.log("KPUNK selling detail: ", object);
@@ -116,6 +131,11 @@ server.listen(PORT, () => {
       new Date().toDateString()
     )
   );
+  console.log(
+    chalk.blueBright(
+      "==== system last updated: update exchange currency support ===="
+    )
+  );
 });
 
 async function sendListedToDiscord(object, bot) {
@@ -123,7 +143,7 @@ async function sendListedToDiscord(object, bot) {
   const jsonObj = await axios.get(tokenURI);
 
   const embed = createPunkkubEmbedForListed(
-    `${jsonObj.data.name} listed @${object.price} KUB`,
+    `${jsonObj.data.name} listed @${object.price}`,
     jsonObj.data.image,
     `listedAt: ${object.createdDate} | ${object.createdTime}`
   );
@@ -141,7 +161,7 @@ async function sendSoldToDiscord(object, bot) {
   const jsonObj = await axios.get(tokenURI);
 
   const embed = createPunkkubEmbedForSold(
-    `${jsonObj.data.name} Sold @${object.price} KUB`,
+    `${jsonObj.data.name} Sold @${object.price}`,
     jsonObj.data.image,
     `SoldAt: ${object.soldDate} | ${object.soldTime}`
   );
@@ -166,7 +186,7 @@ function startKeepAlive() {
         console.log("punk! the punk!");
       });
       res.on("error", function (error) {
-        console.log(error);
+        console.log(error.message);
       });
     });
   }, 30 * 60 * 1000);
