@@ -1,23 +1,12 @@
 const { ethers } = require("ethers");
 
-const channelId = "965474646499663954";
-
-// const sequelize = require("./database/database");
-
-// database is here
-// const {
-//   saveVerifiedHolder,
-//   updateHolderStatus,
-//   getHolderByDiscordId,
-//   getHolderByWallet,
-// } = require("./database/database.service");
-// sequelize.sync().then(() => console.log("punkkub-database is ready"));
 const {
   getDataByDiscord,
-  getDataByWallet,
   saveVerifiedData,
   updateVerificationStatus,
 } = require("./csv/verify.service");
+
+const { giveRole, takeRole } = require("./discord.role");
 
 const BKCMainnetUrl = process.env.bitkubMainnet;
 // const BKCMainnetUrl = process.env.bitkubTestnet;
@@ -29,19 +18,12 @@ const punkkub = new ethers.Contract(
   [
     "function tokenURI(uint256 _tokenId) view returns(string memory)",
     "function balanceOf(address _owner) view returns(uint256)",
-    "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)",
   ],
   BKCProvider
 );
 
-//Verification Main function is here
-async function verifyHolder(message, client) {
-  await checkVerifyHolder(message, client);
-}
-
 //Check if holder have the right of verification
 async function checkVerifyHolder(message, client) {
-  console.log("bot", bot);
   if (message.author.bot) {
     return;
   }
@@ -59,12 +41,6 @@ async function checkVerifyHolder(message, client) {
 
   if (balance > 0 && !verified) {
     //set user as verified holder
-    // saveVerifiedHolder({
-    //   discordId: sender.id,
-    //   walletAddress: sender.address,
-    //   timestamp: sender.timestamp,
-    //   verified: true,
-    // });
     const result = await saveVerifiedData({
       wallet: sender.address,
       discord: sender.id,
@@ -78,6 +54,7 @@ async function checkVerifyHolder(message, client) {
         `@${message.author.username} ยินต้อนรับ! พังค์พวกกก !! คุณเป็นพวกเราแล้ว! [New Punker!]`,
         client
       );
+      await giveRole(client, sender.id);
     } else {
       //update to verified again
       console.log(
@@ -90,19 +67,27 @@ async function checkVerifyHolder(message, client) {
         client
       );
       updateVerificationStatus(sender.address, true);
+      await giveRole(client, sender.id);
     }
-  } else {
+  } else if (balance > 0 && verified) {
     console.log(`@${sender.address} is verified. `);
     sendBackMessage(
-      `@${message.author.username} คุณเป็นชาวพังค์แล้วนะ !! [Its Ok~]`,
+      `@${message.author.username} คุณเป็นชาวพังค์แล้วนี่นา !! [Already Verified!]`,
       client
     );
+  } else {
+    console.log(`@${sender.address} has no punk!`);
+    sendBackMessage(
+      `@${message.author.username} คุณต้องมี punkkub ในกระเป๋าก่อนนะ ค่อยมา verify [invalid balance]`,
+      client
+    );
+    takeRole(client, sender.id);
   }
 }
 
 //send message back to client
 function sendBackMessage(message, client) {
-  const channel = client.channels.cache.get(channelId);
+  const channel = client.channels.cache.get(process.env.channelId);
   channel.send(message);
 }
 
@@ -144,8 +129,8 @@ async function getHolderBalance(address) {
   }
 }
 
+//check if the sender is verified
 async function isVerified(sender) {
-  // const { verified } = await getHolderByDiscordId(sender.id);
   const data = await getDataByDiscord(sender.id);
 
   if (data != null) {
@@ -155,34 +140,7 @@ async function isVerified(sender) {
   }
 }
 
-// //holder object
-// //discordId
-// //walletId
-// //timestamp
-// //lastBalance
-// //verified: true, false
-
-//tracking transfer event for give discord user a role and nickname
-punkkub.on("Transfer", async (from, to, tokenId) => {
-  if (isMarketPlace(to)) {
-  }
-
-  if (isMarketPlace(from)) {
-  }
-});
-
-//check if receiver is marketplace
-function isMarketPlace(to) {
-  let marketPlaceAddress = "0x874987257374cAE9E620988FdbEEa2bBBf757cA9";
-  let middleAddress = "0xA51b0F76f0d7d558DFc0951CFD74BB85a70E2a95";
-
-  if (to === marketPlaceAddress || to === middleAddress) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
 module.exports = {
-  verifyHolder,
+  checkVerifyHolder,
+  getHolderBalance,
 };

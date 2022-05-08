@@ -4,7 +4,6 @@ require("dotenv").config({
 
 const PORT = process.env.PORT || 1234;
 // const channelId = "965495842557546526";
-const channelId = "965474646499663954";
 
 const ethers = require("ethers");
 const express = require("express");
@@ -19,6 +18,10 @@ const {
   createPunkkubEmbedForListed,
   createPunkkubEmbedForSold,
 } = require("./discord.bot");
+
+const { giveRole, takeRole } = require("./discord.role");
+const { getHolderBalance } = require("./discord.verify");
+const { getDataByWallet } = require("./csv/verify.service");
 
 const app = express();
 app.use(express.json());
@@ -49,43 +52,44 @@ const megalandMarketPlace = new ethers.Contract(
 
 const punkkub = new ethers.Contract(
   process.env.punkkub,
-  ["function tokenURI(uint256 _tokenId) view returns(string memory)"],
+  [
+    "function tokenURI(uint256 _tokenId) view returns(string memory)",
+    "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)",
+  ],
   BKCProvider
 );
 
-const run = async () => {
-  megalandMarketPlace.on(
-    "ListingCreated",
-    async (seller, nftContract, tokenId, price, createdAt, listingId) => {
-      if (nftContract === process.env.punkkub) {
-        console.log(chalk.yellowBright("[MarketPlace]: token listed."));
+megalandMarketPlace.on(
+  "ListingCreated",
+  async (seller, nftContract, tokenId, price, createdAt, listingId) => {
+    if (nftContract === process.env.punkkub) {
+      console.log(chalk.yellowBright("[MarketPlace]: token listed."));
 
-        const { price, exchangeToken } = await megalandMarketPlace.idToListing(
-          listingId.toString()
-        );
+      const { price, exchangeToken } = await megalandMarketPlace.idToListing(
+        listingId.toString()
+      );
 
-        const object = {
-          seller,
-          nftContract,
-          tokenId: tokenId.toString(),
-          price: getFormattedPrice(
-            ethers.utils.formatEther(price.toString()).toString(),
-            exchangeToken
-          ),
-          createdDate: new Date(createdAt.toString() * 1000).toLocaleDateString(
-            "th-TH"
-          ),
-          createdTime: new Date(
-            parseInt(createdAt.toString()) * 1000
-          ).toLocaleTimeString("th-TH"),
-        };
+      const object = {
+        seller,
+        nftContract,
+        tokenId: tokenId.toString(),
+        price: getFormattedPrice(
+          ethers.utils.formatEther(price.toString()).toString(),
+          exchangeToken
+        ),
+        createdDate: new Date(createdAt.toString() * 1000).toLocaleDateString(
+          "th-TH"
+        ),
+        createdTime: new Date(
+          parseInt(createdAt.toString()) * 1000
+        ).toLocaleTimeString("th-TH"),
+      };
 
-        console.log("KPUNK Listing detail: ", object);
-        await sendListedToDiscord(object, bot);
-      }
+      console.log("KPUNK Listing detail: ", object);
+      await sendListedToDiscord(object, bot);
     }
-  );
-};
+  }
+);
 
 megalandMarketPlace.on(
   "ItemSold",
@@ -120,7 +124,42 @@ megalandMarketPlace.on(
   }
 );
 
-run();
+//tracking transfer event for give discord user a role and nickname
+punkkub.on("Transfer", async (from, to, tokenId) => {
+  if (isMarketPlace(to)) {
+    await onTransferUpdateRole(from);
+  }
+
+  if (isMarketPlace(from)) {
+    await onTransferUpdateRole(to);
+  }
+});
+
+async function onTransferUpdateRole(wallet) {
+  const holderData = await getDataByWallet(wallet);
+  const balance = await getHolderBalance(wallet);
+  if (balance > 0 && holderData && holderData.wallet == wallet) {
+    await giveRole(client, holderData.discord);
+  } else if (balance <= 0 && holderData && holderData.wallet == wallet) {
+    await takeRole(client, holderData.discord);
+  } else {
+    console.log(`transfer from non-verified holder. ${wallet}`);
+  }
+}
+
+//check if receiver is marketplace
+function isMarketPlace(to) {
+  let marketPlaceAddress = "0x874987257374cAE9E620988FdbEEa2bBBf757cA9";
+  let middleAddress = "0xA51b0F76f0d7d558DFc0951CFD74BB85a70E2a95";
+
+  if (to === marketPlaceAddress || to === middleAddress) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+// run();
 // startKeepAlive();
 
 const server = http.createServer(app);
@@ -143,7 +182,7 @@ async function sendListedToDiscord(object, bot) {
     `listedAt: ${object.createdDate} | ${object.createdTime}`
   );
 
-  const channel = bot.channels.cache.get(channelId);
+  const channel = bot.channels.cache.get(process.env.channelId);
   if (channel) {
     channel.send({
       embeds: [embed],
@@ -161,7 +200,7 @@ async function sendSoldToDiscord(object, bot) {
     `SoldAt: ${object.soldDate} | ${object.soldTime}`
   );
 
-  const channel = bot.channels.cache.get(channelId);
+  const channel = bot.channels.cache.get(process.env.channelId);
   if (channel) {
     channel.send({
       embeds: [embed],
