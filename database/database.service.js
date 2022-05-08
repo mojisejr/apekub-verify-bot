@@ -1,32 +1,37 @@
 const sequelize = require("./database");
-const Job = require("./Job");
+const PunkHolder = require("./Holder");
 
-async function createNewJob({ jobId, owner, tokenIds, status }) {
-  const createdJob = await Job.create({
-    jobId,
-    owner,
-    tokenIds,
-    status,
+async function saveVerifiedHolder({
+  discordId,
+  walletAddress,
+  timestamp,
+  verified,
+}) {
+  const newHolder = await PunkHolder.create({
+    discordId,
+    walletAddress,
+    timestamp,
+    verified,
   });
 
-  console.log("job created", createdJob.toJSON());
+  console.log("newHolder", newHolder.toJSON());
 
-  return createdJob.toJSON();
+  return newHolder.toJSON();
 }
 
-async function updateJobState({ jobId, status }) {
-  await Job.update(
-    { status },
+async function updateHolderStatus({ walletAddress, verifiedValue }) {
+  await PunkHolder.update(
+    { verified: verifiedValue },
     {
       where: {
-        jobId,
+        walletAddress,
       },
     }
   );
 
-  const updated = await Job.findAll({
+  const updated = await PunkHolder.findAll({
     where: {
-      jobId,
+      walletAddress,
     },
   });
 
@@ -35,7 +40,30 @@ async function updateJobState({ jobId, status }) {
   return updated[0];
 }
 
+async function getHolderByDiscordId(discordId) {
+  const found = await PunkHolder.findAll({
+    where: {
+      discordId,
+    },
+  });
+
+  return found[0].dataValues;
+}
+
+async function getHolderByWallet(walletAddress) {
+  const found = await PunkHolder.findAll({
+    where: {
+      walletAddress,
+    },
+  });
+
+  console.log("found by walletAddress", found[0].dataValues);
+  return found[0].dataValues;
+}
+
 module.exports = {
-  createNewJob,
-  updateJobState,
+  saveVerifiedHolder,
+  updateHolderStatus,
+  getHolderByDiscordId,
+  getHolderByWallet,
 };

@@ -1,27 +1,27 @@
 const { Model, DataTypes } = require("sequelize");
 const sequelize = require("./database");
 
-class Job extends Model {}
+class PunkHolder extends Model {}
 
-Job.init(
+PunkHolder.init(
   {
-    jobId: {
+    discordId: {
       type: DataTypes.STRING,
     },
-    owner: {
+    walletAddress: {
       type: DataTypes.STRING,
     },
-    tokenIds: {
-      type: DataTypes.ARRAY(DataTypes.NUMBER),
-    },
-    status: {
+    timestamp: {
       type: DataTypes.INTEGER,
+    },
+    verified: {
+      type: DataTypes.BOOLEAN,
     },
   },
   {
     sequelize,
-    modelName: "Job",
+    modelName: "PunkHolder",
   }
 );
 
-module.exports = Job;
+module.exports = PunkHolder;

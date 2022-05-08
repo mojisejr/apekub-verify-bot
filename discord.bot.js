@@ -1,12 +1,20 @@
 const { Client, Intents, MessageEmbed } = require("discord.js");
 
-const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
+const { verifyHolder } = require("./discord.verify");
+
+const client = new Client({
+  intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES],
+});
 
 client.once("ready", () => {
-  console.log("punkkub bot v1 is ready");
+  console.log("punkkub-discord is ready");
 });
 
 client.login(process.env.punkkubBotToken);
+
+client.on("messageCreate", async (message) => {
+  await verifyHolder(message, client);
+});
 
 function createPunkkubEmbedForListed(title, uri, listedTime) {
   const embed = new MessageEmbed()

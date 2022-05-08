@@ -3,8 +3,8 @@ require("dotenv").config({
 });
 
 const PORT = process.env.PORT || 1234;
-const channelId = "965495842557546526";
-// const channelId = "965474646499663954";
+// const channelId = "965495842557546526";
+const channelId = "965474646499663954";
 
 const ethers = require("ethers");
 const express = require("express");
@@ -121,7 +121,7 @@ megalandMarketPlace.on(
 );
 
 run();
-startKeepAlive();
+// startKeepAlive();
 
 const server = http.createServer(app);
 server.listen(PORT, () => {
@@ -129,11 +129,6 @@ server.listen(PORT, () => {
     chalk.blueBright(
       "==== megaland - market tracker is now live ====",
       new Date().toDateString()
-    )
-  );
-  console.log(
-    chalk.blueBright(
-      "==== system last updated: update exchange currency support ===="
     )
   );
 });

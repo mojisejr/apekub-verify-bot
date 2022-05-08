@@ -1,0 +1,69 @@
+  // if (isMarketPlace(to)) {
+  //   //market operation do nothing just log out
+  //   console.log("Transfer Event: market operation.");
+  // } else if (isMarketPlace(from) && !isMarketPlace(to)) {
+  //   //if transfer from market to EOA
+  //   //1 check if buyer has registered to csv ?
+  //   //2 if yes check verification status
+  //   //3 if not verify but has register
+  //   //4 update status to true (verified) give back there role
+  //   //5 if not need to verify on discord first
+
+  //   console.log(
+  //     `Transfer Event[BUY]: @${from} [market] transfer tokenId[${tokenId}] to ${to} `
+  //   );
+  //   const balance = await getHolderBalance(to);
+  //   console.log(`balanceOf(${to}) [buyer]: ${balance}`);
+  //   const verificationData = await getDataByWallet(to);
+  //   if (verificationData && verificationData.verified === "false") {
+  //     console.log(`@${to} has registered update verification status.`);
+  //     updateVerificationStatus(wallet, true);
+  //     console.log("give role");
+  //   }
+  // } else if (!isMarketPlace(from) && isMarketPlace(to)) {
+  //   console.log(
+  //     `Transfer Event[SELL]: @${from}  transfer tokenId[${tokenId}] to ${to} [market place]`
+  //   );
+  //   const balance = await getHolderBalance(to);
+  //   console.log(`balanceOf(${to}) [seller]: ${balance}`);
+  //   const verificationData = await getDataByWallet(to);
+  //   if (
+  //     verificationData &&
+  //     verificationData.verified === "true" &&
+  //     balance <= 0
+  //   ) {
+  //     console.log(`@${to} has registered update verification status.`);
+  //     updateVerificationStatus(wallet, false);
+  //     console.log("give role");
+  //   }
+  // } else {
+  //   //if it is sending from EOA to EOA
+  //   //1 check if
+  //   console.log(
+  //     `Transfer Event[Send]: from @${from} transfer tokenId[${tokenId}] to ${to}`
+  //   );
+  //   //check sender
+  //   const balanceOfSender = await getHolderBalance(from);
+  //   if (balanceOfSender <= 0) {
+  //     const verificationData = await getDataByWallet(to);
+  //     if (verificationData && verificationData.verified === "true") {
+  //       console.log(
+  //         `sender: @${from} has been sent all their tokens update verification status.`
+  //       );
+  //       updateVerificationStatus(wallet, false);
+  //       console.log("take role");
+  //     }
+  //   }
+  //   //check buyer if they has already registered ?
+  //   const balanceOfReceiver = await getHolderBalance(to);
+  //   if (balanceOfReceiver > 0) {
+  //     const verificationData = await getDataByWallet(to);
+  //     if (verificationData && verificationData.verified === "false") {
+  //       console.log(
+  //         `sender: @${to} get back to be the holder again update verification role.`
+  //       );
+  //       updateVerificationStatus(wallet, true);
+  //       console.log("take role");
+  //     }
+  //   }
+  // }
