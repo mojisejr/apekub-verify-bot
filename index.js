@@ -130,16 +130,8 @@ megalandMarketPlace.on(
 //tracking transfer event for give discord user a role and nickname
 punkkub.on("Transfer", async (from, to, tokenId) => {
   if (isMarketPlace(to)) {
-    console.log("Transfering to market");
     await onTransferUpdateRole(from);
-<<<<<<< HEAD
   } else if (isMarketPlace(from)) {
-=======
-  }
-
-  if (isMarketPlace(from)) {
-    console.log("Transfering from market");
->>>>>>> afd46304caa6be49d93278711bd3a6ca2b789625
     await onTransferUpdateRole(to);
   } else {
     await onTransferUpdateRole(to);
@@ -151,14 +143,9 @@ async function onTransferUpdateRole(wallet) {
   const holderData = await getDataByWallet(wallet);
   const balance = await getHolderBalance(wallet);
   if (balance > 0 && holderData && holderData.wallet == wallet) {
-<<<<<<< HEAD
     console.log(`@${wallet} : is holder.`);
     await giveRole(bot, holderData.discord);
     await updateVerificationStatus(wallet, true);
-=======
-    console.log("holderData:", holderData.discord);
-    await giveRole(client, holderData.discord);
->>>>>>> afd46304caa6be49d93278711bd3a6ca2b789625
   } else if (balance <= 0 && holderData && holderData.wallet == wallet) {
     console.log(`@${wallet} : is NOT holder`);
     await takeRole(bot, holderData.discord);
