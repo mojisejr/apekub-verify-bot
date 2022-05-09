@@ -105,10 +105,15 @@ function getHolderAddress(message) {
 
 //check if valid address was sent
 function isValidAddress(address) {
-  let isAddress = address.slice(0, 2);
-  if (isAddress == "0x") {
+  let isAddress = address.split("0x");
+  if (
+    isAddress[0] == "" &&
+    isAddress[1].length == 40 &&
+    isAddress.length == 2
+  ) {
     return address;
   } else {
+    console.log("invalid address");
     return null;
   }
 }

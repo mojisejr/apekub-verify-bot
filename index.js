@@ -21,7 +21,10 @@ const {
 
 const { giveRole, takeRole } = require("./discord.role");
 const { getHolderBalance } = require("./discord.verify");
-const { getDataByWallet } = require("./csv/verify.service");
+const {
+  getDataByWallet,
+  updateVerificationStatus,
+} = require("./csv/verify.service");
 
 const app = express();
 app.use(express.json());
@@ -128,10 +131,11 @@ megalandMarketPlace.on(
 punkkub.on("Transfer", async (from, to, tokenId) => {
   if (isMarketPlace(to)) {
     await onTransferUpdateRole(from);
-  }
-
-  if (isMarketPlace(from)) {
+  } else if (isMarketPlace(from)) {
     await onTransferUpdateRole(to);
+  } else {
+    await onTransferUpdateRole(to);
+    await onTransferUpdateRole(from);
   }
 });
 
@@ -139,11 +143,15 @@ async function onTransferUpdateRole(wallet) {
   const holderData = await getDataByWallet(wallet);
   const balance = await getHolderBalance(wallet);
   if (balance > 0 && holderData && holderData.wallet == wallet) {
-    await giveRole(client, holderData.discord);
+    console.log(`@${wallet} : is holder.`);
+    await giveRole(bot, holderData.discord);
+    await updateVerificationStatus(wallet, true);
   } else if (balance <= 0 && holderData && holderData.wallet == wallet) {
-    await takeRole(client, holderData.discord);
+    console.log(`@${wallet} : is NOT holder`);
+    await takeRole(bot, holderData.discord);
+    await updateVerificationStatus(wallet, false);
   } else {
-    console.log(`transfer from non-verified holder. ${wallet}`);
+    console.log(`transfer from non-verified holder. @${wallet}`);
   }
 }
 
