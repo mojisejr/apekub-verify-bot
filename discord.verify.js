@@ -78,10 +78,9 @@ async function checkVerifyHolder(message, client) {
   } else {
     console.log(`@${sender.address} has no punk!`);
     sendBackMessage(
-      `@${message.author.username} คุณต้องมี punkkub ในกระเป๋าก่อนนะ ค่อยมา verify [invalid balance]`,
+      `@${message.author.username} คุณต้องมี punkkub ในกระเป๋าก่อนนะ ค่อยมา verify [Invalid balance]`,
       client
     );
-    takeRole(client, sender.id);
   }
 }
 
