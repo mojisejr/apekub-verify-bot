@@ -79,8 +79,6 @@ async function getPunkByWallet(wallet) {
   }
 }
 
-getPunkByWallet("0x27ea0d98E5876b70377d6d921DAE987BE48A7A2c");
-
 module.exports = {
   addVerifiedPunk,
   updatePunkVerificationState,
