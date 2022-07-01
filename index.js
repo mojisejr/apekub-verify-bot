@@ -11,21 +11,7 @@ const chalk = require("chalk");
 const http = require("http");
 const axios = require("axios");
 
-const { getFormattedPrice } = require("./helper/priceFormatter");
-
-const {
-  bot,
-  createPunkkubEmbedForListed,
-  createPunkkubEmbedForSold,
-} = require("./discord.bot");
-
-const { giveRole, takeRole } = require("./discord.role");
-const { getHolderBalance } = require("./discord.verify");
-const {
-  getDataByWallet,
-  updateVerificationStatus,
-} = require("./csv/verify.service");
-
+//==== express
 const app = express();
 app.use(express.json());
 app.use(
@@ -39,6 +25,15 @@ app.get("/alive", (req, res) => {
     result: "punk!",
   });
 });
+
+//=== market bot
+const { getFormattedPrice } = require("./helper/priceFormatter");
+
+const {
+  bot,
+  createPunkkubEmbedForListed,
+  createPunkkubEmbedForSold,
+} = require("./discord.bot");
 
 const BKCMainnetUrl = process.env.bitkubMainnet;
 const BKCProvider = new ethers.providers.JsonRpcProvider(BKCMainnetUrl);
@@ -127,46 +122,6 @@ megalandMarketPlace.on(
   }
 );
 
-//tracking transfer event for give discord user a role and nickname
-punkkub.on("Transfer", async (from, to, tokenId) => {
-  if (isMarketPlace(to)) {
-    await onTransferUpdateRole(from);
-  } else if (isMarketPlace(from)) {
-    await onTransferUpdateRole(to);
-  } else {
-    await onTransferUpdateRole(to);
-    await onTransferUpdateRole(from);
-  }
-});
-
-async function onTransferUpdateRole(wallet) {
-  const holderData = await getDataByWallet(wallet);
-  const balance = await getHolderBalance(wallet);
-  if (balance > 0 && holderData && holderData.wallet == wallet) {
-    console.log(`@${wallet} : is holder.`);
-    await giveRole(bot, holderData.discord);
-    await updateVerificationStatus(wallet, true);
-  } else if (balance <= 0 && holderData && holderData.wallet == wallet) {
-    console.log(`@${wallet} : is NOT holder`);
-    await takeRole(bot, holderData.discord);
-    await updateVerificationStatus(wallet, false);
-  } else {
-    console.log(`transfer from non-verified holder. @${wallet}`);
-  }
-}
-
-//check if receiver is marketplace
-function isMarketPlace(to) {
-  let marketPlaceAddress = "0x874987257374cAE9E620988FdbEEa2bBBf757cA9";
-  let middleAddress = "0xA51b0F76f0d7d558DFc0951CFD74BB85a70E2a95";
-
-  if (to === marketPlaceAddress || to === middleAddress) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
 // run();
 // startKeepAlive();
 
@@ -214,22 +169,4 @@ async function sendSoldToDiscord(object, bot) {
       embeds: [embed],
     });
   }
-}
-
-function startKeepAlive() {
-  setInterval(function () {
-    let options = {
-      host: "https://punkkub-discord-bot.herokuapp.com",
-      port: 80,
-      path: "/alive",
-    };
-    http.get(options, function (res) {
-      res.on("data", function (chunk) {
-        console.log("punk! the punk!");
-      });
-      res.on("error", function (error) {
-        console.log(error.message);
-      });
-    });
-  }, 30 * 60 * 1000);
 }

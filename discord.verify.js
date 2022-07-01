@@ -23,63 +23,58 @@ const punkkub = new ethers.Contract(
 );
 
 //Check if holder have the right of verification
-async function checkVerifyHolder(message, client) {
-  if (message.author.bot) {
+async function checkVerifyHolder(inputData, client, interaction) {
+  const { wallet, discordId, discordName, timestamp } = inputData;
+  // if (message.author.bot) {
+  //   return;
+  // }
+  const address = isValidAddress(wallet);
+  if (address == null) {
+    interaction.reply("ตรวจสอบเลขกระเป๋าหน่อย อาจจะผิดนะ ! 🥹");
     return;
   }
-  const address = await getHolderAddress(message);
-  if (address == null) return;
-  let sender = {
-    id: message.author.id,
-    timestamp: message.createdTimestamp,
-    address,
-  };
 
-  const verified = await isVerified(sender);
+  const verified = await isVerified(discordName);
+  console.log("verified", verified);
 
-  const balance = await getHolderBalance(sender.address);
+  const balance = await getHolderBalance(wallet);
 
   if (balance > 0 && !verified) {
     //set user as verified holder
     const result = await saveVerifiedData({
-      wallet: sender.address,
-      discord: sender.id,
-      timestamp: sender.timestamp,
+      wallet: address,
+      discordName,
+      discordId,
+      timestamp,
       lastbalance: balance,
       verified: true,
     });
     if (result) {
-      console.log(`@${sender.address} verification done!`);
-      sendBackMessage(
-        `@${message.author.username} ยินต้อนรับ! พังค์พวกกก !! คุณเป็นพวกเราแล้ว! [New Punker!]`,
-        client
+      console.log(`@${wallet} verification done!`);
+      interaction.reply(
+        `@${discordName} ยินต้อนรับ! พังค์พวกกก !! คุณเป็นพวกเราแล้ว! [New Punker!] 🙏🙏🙏🙏`
       );
-      await giveRole(client, sender.id);
+      await giveRole(client, discordId);
     } else {
       //update to verified again
       console.log(
-        `found address: @${
-          sender.address
-        } update verification status to: ${true}`
+        `found address: @${wallet} update verification status to: ${true}`
       );
-      sendBackMessage(
-        `@${message.author.username} ยินดีต้อนรับกลับมา พังค์พวก !! [Welcome Back!]`,
-        client
+      interaction.reply(
+        `@${discordName} ยินดีต้อนรับกลับมา พังค์พวก !! [Welcome Back!] 🦾🦾🦾`
       );
-      updateVerificationStatus(sender.address, true);
-      await giveRole(client, sender.id);
+      updateVerificationStatus(wallet, true);
+      await giveRole(client, discordId);
     }
   } else if (balance > 0 && verified) {
-    console.log(`@${sender.address} is verified. `);
-    sendBackMessage(
-      `@${message.author.username} คุณเป็นชาวพังค์แล้วนี่นา !! [Already Verified!]`,
-      client
+    console.log(`@${wallet} is verified. `);
+    interaction.reply(
+      `@${discordName} คุณเป็นชาวพังค์แล้วนี่นา !! [Already Verified!] 😁`
     );
   } else {
-    console.log(`@${sender.address} has no punk!`);
-    sendBackMessage(
-      `@${message.author.username} คุณต้องมี punkkub ในกระเป๋าก่อนนะ ค่อยมา verify [Invalid balance]`,
-      client
+    console.log(`@${wallet} has no punk!`);
+    interaction.reply(
+      `@${discordName} คุณต้องมี punkkub ในกระเป๋าก่อนนะ ค่อยมา verify [Invalid balance] 🚧`
     );
   }
 }
@@ -88,18 +83,6 @@ async function checkVerifyHolder(message, client) {
 function sendBackMessage(message, client) {
   const channel = client.channels.cache.get(process.env.channelId);
   channel.send(message);
-}
-
-//check if use send the verification command and their valid address
-function getHolderAddress(message) {
-  const verifyCommand = "!guPunk";
-  let [command, address] = message.content.split(" ");
-  if (isCommand(message, verifyCommand)) {
-    console.log("verifying address: ", address);
-    return isValidAddress(address);
-  } else {
-    return null;
-  }
 }
 
 //check if valid address was sent
@@ -117,12 +100,6 @@ function isValidAddress(address) {
   }
 }
 
-//check the command in struction
-function isCommand(message, commandType) {
-  let [command] = message.content.split(" ");
-  return command === commandType;
-}
-
 //get the balance of punk in use wallet
 async function getHolderBalance(address) {
   if (address != null) {
@@ -134,11 +111,11 @@ async function getHolderBalance(address) {
 }
 
 //check if the sender is verified
-async function isVerified(sender) {
-  const data = await getDataByDiscord(sender.id);
+async function isVerified(discordName) {
+  const data = await getDataByDiscord(discordName);
 
   if (data != null) {
-    return data.verified === "true";
+    return data.verified ? true : false;
   } else {
     return false;
   }
@@ -147,4 +124,5 @@ async function isVerified(sender) {
 module.exports = {
   checkVerifyHolder,
   getHolderBalance,
+  sendBackMessage,
 };
