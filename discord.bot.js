@@ -75,7 +75,7 @@ async function onTransferUpdateRole(wallet) {
     await updateVerificationStatus(wallet, true);
   } else if (balance <= 0 && holderData && holderData.wallet == wallet) {
     console.log(`@${wallet} : is NOT holder`);
-    await takeRole(client, holderData.discord);
+    await takeRole(client, holderData.discordId);
     await updateVerificationStatus(wallet, false);
   } else {
     console.log(`transfer from non-verified holder. @${wallet}`);
