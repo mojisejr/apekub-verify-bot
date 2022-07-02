@@ -1,11 +1,14 @@
 const admin = require("firebase-admin");
+// const credentials = require("../punkkub.json");
 
+//production
 admin.initializeApp({
   credential: admin.credential.cert({
     type: process.env.type,
     project_id: process.env.project_id,
     private_key_id: process.env.private_key_id,
     private_key: process.env.private_key.replace(/\\n/g, "\n"),
+    private_key: process.env.private_key,
     client_email: process.env.client_email,
     client_id: process.env.client_id,
     auth_uri: process.env.auth_uri,
@@ -14,6 +17,11 @@ admin.initializeApp({
     client_x509_cert_url: process.env.client_x509_cert_url,
   }),
 });
+
+//Dev mode
+// admin.initializeApp({
+//   credential: admin.credential.cert(credentials),
+// });
 
 //using firestore
 const db = admin.firestore();
@@ -67,7 +75,6 @@ async function getPunkByDiscordName(discordName) {
     return null;
   }
 }
-
 async function getPunkByWallet(wallet) {
   const allPunk = await getAllVerifiedPunk();
   const found = allPunk.find((punk) => punk.wallet == wallet);
@@ -84,4 +91,6 @@ module.exports = {
   updatePunkVerificationState,
   getPunkByDiscordName,
   getPunkByWallet,
+  Collection,
+  db,
 };

@@ -145,7 +145,7 @@ async function sendListedToDiscord(object, bot) {
     `listedAt: ${object.createdDate} | ${object.createdTime}`
   );
 
-  const channel = bot.channels.cache.get(process.env.channelId);
+  const channel = bot.channels.cache.get(process.env.marketMonitorchannelId);
   if (channel) {
     channel.send({
       embeds: [embed],
@@ -163,7 +163,7 @@ async function sendSoldToDiscord(object, bot) {
     `SoldAt: ${object.soldDate} | ${object.soldTime}`
   );
 
-  const channel = bot.channels.cache.get(process.env.channelId);
+  const channel = bot.channels.cache.get(process.env.marketMonitorchannelId);
   if (channel) {
     channel.send({
       embeds: [embed],

@@ -81,7 +81,7 @@ async function checkVerifyHolder(inputData, client, interaction) {
 
 //send message back to client
 function sendBackMessage(message, client) {
-  const channel = client.channels.cache.get(process.env.channelId);
+  const channel = client.channels.cache.get(process.env.verifyChannelId);
   channel.send(message);
 }
 
