@@ -15,8 +15,8 @@ async function getDataByDiscord(discord) {
   return result;
 }
 
-async function updateVerificationStatus(wallet, status) {
-  updatePunkVerificationState(wallet, status);
+async function updateVerificationStatus(wallet, balance, status) {
+  updatePunkVerificationState(wallet, balance, status);
   console.log(`@${wallet} verification status updated to ${status}`);
 }
 
