@@ -30,10 +30,11 @@ async function checkVerifyHolder(inputData, client, interaction) {
   // }
   const address = isValidAddress(wallet);
   if (address == null) {
-    interaction.reply("ตรวจสอบเลขกระเป๋าหน่อย อาจจะผิดนะ ! 🥹");
+    await interaction.reply("ตรวจสอบเลขกระเป๋าหน่อย อาจจะผิดนะ ! 🥹");
     return;
   }
 
+  await interaction.reply("ขอตรวจกระเป๋าหน่อยนะ .. 🤖");
   const verified = await isVerified(discordName);
   console.log("verified", verified);
 
@@ -51,7 +52,7 @@ async function checkVerifyHolder(inputData, client, interaction) {
     });
     if (result) {
       console.log(`@${wallet} verification done!`);
-      interaction.reply(
+      await interaction.editReply(
         `@${discordName} ยินต้อนรับ! พังค์พวกกก !! คุณเป็นพวกเราแล้ว! [New Punker!] 🙏🙏🙏🙏`
       );
       await giveRole(client, discordId);
@@ -60,7 +61,7 @@ async function checkVerifyHolder(inputData, client, interaction) {
       console.log(
         `found address: @${wallet} update verification status to: ${true}`
       );
-      interaction.reply(
+      await interaction.editReply(
         `@${discordName} ยินดีต้อนรับกลับมา พังค์พวก !! [Welcome Back!] 🦾🦾🦾`
       );
       updateVerificationStatus(wallet, true);
@@ -68,12 +69,12 @@ async function checkVerifyHolder(inputData, client, interaction) {
     }
   } else if (balance > 0 && verified) {
     console.log(`@${wallet} is verified. `);
-    interaction.reply(
+    await interaction.editReply(
       `@${discordName} คุณเป็นชาวพังค์แล้วนี่นา !! [Already Verified!] 😁`
     );
   } else {
     console.log(`@${wallet} has no punk!`);
-    interaction.reply(
+    await interaction.editReply(
       `@${discordName} คุณต้องมี punkkub ในกระเป๋าก่อนนะ ค่อยมา verify [Invalid balance] 🚧`
     );
   }
