@@ -53,7 +53,7 @@ async function checkVerifyHolder(inputData, client, interaction) {
     if (result) {
       console.log(`@${wallet} verification done!`);
       await interaction.editReply(
-        `@${discordName} ยินต้อนรับ! พังค์พวกกก !! คุณเป็นพวกเราแล้ว! [New Punker!] 🙏🙏🙏🙏`
+        `@${discordName} ยินดีต้อนรับ! ชาว Ape คุณเป็นส่วนหนึ่งของป่าแล้ว! [New ApeKub!] 🍌🍌🍌🍌`
       );
       await giveRole(client, discordId);
     } else {
@@ -62,7 +62,7 @@ async function checkVerifyHolder(inputData, client, interaction) {
         `found address: @${wallet} update verification status to: ${true}`
       );
       await interaction.editReply(
-        `@${discordName} ยินดีต้อนรับกลับมา พังค์พวก !! [Welcome Back!] 🦾🦾🦾`
+        `@${discordName} ยินดีต้อนรับกลับมา ชาว Ape!! [Welcome Back!] 🦾🦾🦾`
       );
       updateVerificationStatus(wallet, true);
       await giveRole(client, discordId);
@@ -70,12 +70,13 @@ async function checkVerifyHolder(inputData, client, interaction) {
   } else if (balance > 0 && verified) {
     console.log(`@${wallet} is verified. `);
     await interaction.editReply(
-      `@${discordName} คุณเป็นชาวพังค์แล้วนี่นา !! [Already Verified!] 😁`
+      `@${discordName} คุณเป็นชาว Ape อยู่แล้ว!! [Already Verified!]🦍`
     );
+    await giveRole(client, discordId);
   } else {
     console.log(`@${wallet} has no punk!`);
     await interaction.editReply(
-      `@${discordName} คุณต้องมี punkkub ในกระเป๋าก่อนนะ ค่อยมา verify [Invalid balance] 🚧`
+      `@${discordName} คุณต้องมี ApeKub ในกระเป๋าก่อน แล้วค่อยมาคุยกัน มา verify กันอีกทีครับ เจี๊ยกๆ🚨🚨🙈`
     );
   }
 }
