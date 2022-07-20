@@ -44,9 +44,8 @@ async function addVerifiedPunk(punkData) {
   return response;
 }
 
-async function updatePunkVerificationState(wallet, balance, status) {
+async function updatePunkVerificationState(wallet, status) {
   await Collection.Holder.doc(wallet).update({
-    lastbalance: balance,
     verified: status,
   });
 }

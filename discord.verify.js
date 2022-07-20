@@ -64,8 +64,7 @@ async function checkVerifyHolder(inputData, client, interaction) {
       await interaction.editReply(
         `@${discordName} ยินดีต้อนรับกลับมา พังค์พวก !! [Welcome Back!] 🦾🦾🦾`
       );
-      const balance = await getHolderBalance(wallet);
-      updateVerificationStatus(wallet, balance, true);
+      updateVerificationStatus(wallet, true);
       await giveRole(client, discordId);
     }
   } else if (balance > 0 && verified) {
